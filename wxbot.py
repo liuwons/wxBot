@@ -39,7 +39,7 @@ class WXBot:
         self.MemberList = []
         self.ContactList = []
         self.GroupList = []
-        self.autoReplyMode = False
+        self.is_auto_reply = False
         self.syncHost = ''
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
@@ -375,7 +375,7 @@ class WXBot:
                     print '[Group] |%s| %s: %s' % (group, name, content.replace('<br/>','\n'))
                 else:
                     print '[Text] ', name, ' : ', content
-                    if self.autoReplyMode:
+                    if self.is_auto_reply:
                         ans = self.auto_reply(content)
                         if ans:
                             if self.send_msg(msg['FromUserName'], ans):
@@ -421,7 +421,7 @@ class WXBot:
                 print msg
 
     def proc_msg(self):
-        print '[*] listen start'
+        print 'proc start'
         self.test_sync_check()
         while True:
             [retcode, selector] = self.sync_check()
@@ -492,7 +492,7 @@ class WXBot:
             if pm: return pm.group(1)
         return 'unknown'
 
-    def start(self):
+    def run(self):
         self.get_uuid()
         print 'get uuid end'
         self.gen_qr_code()
@@ -515,36 +515,19 @@ class WXBot:
         self.status_notify()
         print 'status notify end'
         self.get_contact()
-        print '[*] get %d contacts' % len(self.ContactList)
+        print 'get %d contacts' % len(self.ContactList)
 
-        if raw_input('[*] open auto reply mode?(y/n): ') == 'y':
-            self.autoReplyMode = True
-            print '[*] auto reply mode ... opened'
+        if raw_input('auto reply?(y/n): ') == 'y':
+            self.is_auto_reply = True
+            print 'auto reply opened'
         else:
-            print '[*] auto reply mode ... closed'
+            print 'auto reply closed'
 
-        listenProcess = multiprocessing.Process(target=self.proc_msg)
-        listenProcess.start()
-
-        while True:
-            text = raw_input('')
-            if text == 'quit':
-                listenProcess.terminate()
-                exit('[*] exit weichat')
-            elif text[:2] == '->':
-                [name, word] = text[2:].split(':')
-                self.send_msg(name, word)
-            elif text[:3] == 'm->':
-                [name, file] = text[3:].split(':')
-                self.send_msg(name, file, True)
-            elif text[:3] == 'f->':
-                print 'send file'
-            elif text[:3] == 'i->':
-                print 'send image'
+        self.proc_msg()
 
 def main():
     bot = WXBot()
-    bot.start()
+    bot.run()
 
 if __name__ == '__main__':
     main()
