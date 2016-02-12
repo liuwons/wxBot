@@ -12,7 +12,9 @@ pip install pyqrcode
 
 ## Demo
 配置了 **[图灵机器人](http://www.tuling123.com/)** 之后，通过测试账号发送各种消息的效果：
+
 ![向机器人发送消息](img/send_msg.png)
+
 ![后台](img/backfront.jpg)
 
 
