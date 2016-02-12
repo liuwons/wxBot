@@ -44,10 +44,14 @@ class WXBot:
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
 
-        with open('auto.json') as f:
-            cfg = json.load(f)
-            self.auto_reply_url = cfg['url']
-            self.auto_reply_key = cfg['key']
+        try:
+            with open('auto.json') as f:
+                cfg = json.load(f)
+                self.auto_reply_url = cfg['url']
+                self.auto_reply_key = cfg['key']
+        except Exception, e:
+            self.auto_reply_url = None
+            self.auto_reply_key = None
 
     def get_uuid(self):
         url = 'https://login.weixin.qq.com/jslogin'
@@ -202,16 +206,16 @@ class WXBot:
             'wxitil',
             'userexperience_alarm',
             'notification_messages']
-        for Contact in ContactList:
-            if Contact['VerifyFlag'] & 8 != 0: # public account
-                ContactList.remove(Contact)
-            elif Contact['UserName'] in SpecialUsers: # special account
-                ContactList.remove(Contact)
-            elif Contact['UserName'].find('@@') != -1: # group
-                self.GroupList.append(Contact)
-                ContactList.remove(Contact)
-            elif Contact['UserName'] == self.User['UserName']: # self
-                ContactList.remove(Contact)
+        for contact in ContactList:
+            if contact['VerifyFlag'] & 8 != 0: # public account
+                ContactList.remove(contact)
+            elif contact['UserName'] in SpecialUsers: # special account
+                ContactList.remove(contact)
+            elif contact['UserName'].find('@@') != -1: # group
+                self.GroupList.append(contact)
+                ContactList.remove(contact)
+            elif contact['UserName'] == self.User['UserName']: # self
+                ContactList.remove(contact)
         self.ContactList = ContactList
 
         return True
@@ -275,7 +279,7 @@ class WXBot:
     def get_icon(self, id):
         url = self.base_uri + '/webwxgeticon?username=%s&skey=%s' % (id, self.skey)
         r = self.session.get(url)
-        data = r.text
+        data = r.content
         fn = 'img_'+id+'.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
@@ -284,7 +288,7 @@ class WXBot:
     def get_head_img(self, id):
         url = self.base_uri + '/webwxgetheadimg?username=%s&skey=%s' % (id, self.skey)
         r = self.session.get(url)
-        data = r.text
+        data = r.content
         fn = 'img_'+id+'.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
@@ -293,7 +297,7 @@ class WXBot:
     def get_msg_img(self, msgid):
         url = self.base_uri + '/webwxgetmsgimg?MsgID=%s&skey=%s' % (msgid, self.skey)
         r = self.session.get(url)
-        data = r.text
+        data = r.content
         fn = 'img_'+msgid+'.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
@@ -303,7 +307,7 @@ class WXBot:
     def get_video(self, msgid):
         url = self.base_uri + '/webwxgetvideo?msgid=%s&skey=%s' % (msgid, self.skey)
         r = self.session.get(url)
-        data = r.text
+        data = r.content
         fn = 'video_'+msgid+'.mp4'
         with open(fn, 'wb') as f:
             f.write(data)
@@ -312,7 +316,7 @@ class WXBot:
     def get_voice(self, msgid):
         url = self.base_uri + '/webwxgetvoice?msgid=%s&skey=%s' % (msgid, self.skey)
         r = self.session.get(url)
-        data = r.text
+        data = r.content
         fn = 'voice_'+msgid+'.mp3'
         with open(fn, 'wb') as f:
             f.write(data)
@@ -334,6 +338,9 @@ class WXBot:
         return None
 
     def auto_reply(self, word):
+        if self.auto_reply_key == None or self.auto_reply_url == None:
+            return 'hi'
+
         body = {'key': self.auto_reply_key, 'info':word}
         r = requests.post(self.auto_reply_url, data=body)
         resp = json.loads(r.text)
@@ -353,7 +360,7 @@ class WXBot:
             elif msgType == 1:
                 if content.find('http://weixin.qq.com/cgi-bin/redirectforward?args=') != -1:
                     r = self.session.get(content)
-                    r.encoding = 'utf-8'
+                    r.encoding = 'gbk'
                     data = r.text
                     pos = self.search_content('title', data, 'xml')
                     print '[Location] %s : I am at %s ' % (name, pos)
@@ -405,10 +412,12 @@ class WXBot:
                 print '========================='
             elif msgType == 62:
                 print '[Video] ', name, ' sent you a video, please check on mobiles'
+            elif msgType == 53:
+                print '[Video Call] ', name, ' call you'
             elif msgType == 10002:
                 print '[Redraw] ', name, ' redraw back a message'
             else:
-                print '[Maybe] : %d，maybe image or link' % msg['MsgType']
+                print '[Maybe] : %s，maybe image or link' % str(msg['MsgType'])
                 print msg
 
     def proc_msg(self):
@@ -474,6 +483,14 @@ class WXBot:
         else:
             print '[*] this user does not exist'
             return False
+    def search_content(self, key, content, fmat = 'attr'):
+        if fmat == 'attr':
+            pm = re.search(key+'\s?=\s?"([^"<]+)"', content)
+            if pm: return pm.group(1)
+        elif fmat == 'xml':
+            pm=re.search('<{0}>([^<]+)</{0}>'.format(key),content)
+            if pm: return pm.group(1)
+        return 'unknown'
 
     def start(self):
         self.get_uuid()
