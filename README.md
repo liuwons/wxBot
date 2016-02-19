@@ -10,26 +10,48 @@ pip install requests
 pip install pyqrcode
 ```
 
-## Demo
-配置了 **[图灵机器人](http://www.tuling123.com/)** 之后，通过测试账号发送各种消息的效果：
+## Example
+### 代码
 
-![向机器人发送消息](img/send_msg.png)
+利用 **wxBot** 最简单的方法就是继承WXBot类并实现handle_msg_all函数，然后实例化子类并run，如下的代码对所有的文本消息回复 hi 。
+```python
+#!/usr/bin/env python
+# coding: utf-8
 
-![后台](img/backfront.jpg)
+from wxbot import *
 
+class MyWXBot(WXBot):
+    def handle_msg_all(self, msg):
+        if msg['msg_type_id'] == 5:
+            self.send_msg(msg['user_name'], 'hi')
 
-## Run
-### 运行程序
+def main():
+    bot = MyWXBot()
+    bot.DEBUG = True
+    bot.run()
 
-``` bash
-python wxbot.py
+if __name__ == '__main__':
+    main()
+```
+
+### 运行
+
+直接用python运行代码(如代码为main.py时)
+
+``` python
+python main.py
 ```
 
 ### 登录微信
 
-程序运行之后，会在当前目录下生成二维码图片文件 qr.jpg ，用微信扫描此二维码并按操作指示确认登录网页微信。可以选择是否自动回复。
+程序运行之后，会在当前目录下生成二维码图片文件 qr.jpg ，用微信扫描此二维码并按操作指示确认登录网页微信。
 
 
 ![1](img/1.png)
 
-按照操作指示在手机微信上扫描二维码然后登录，你可以选择是否开启自动回复模式。
+## Demo
+利用 **[图灵机器人](http://www.tuling123.com/)** 做自动回复之后，通过测试账号发送各种消息的效果：
+
+![向机器人发送消息](img/send_msg.png)
+
+![后台](img/backfront.jpg)
