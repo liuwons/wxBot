@@ -31,7 +31,7 @@ class WXBot:
         self.sid = ''
         self.skey = ''
         self.pass_ticket = ''
-        self.deviceId = 'e' + repr(random.random())[2:17]
+        self.device_id = 'e' + repr(random.random())[2:17]
         self.base_request = {}
         self.sync_key_str = ''
         self.sync_key = []
@@ -118,7 +118,7 @@ class WXBot:
             'Uin': self.uin,
             'Sid': self.sid,
             'Skey': self.skey,
-            'DeviceID': self.deviceId,
+            'DeviceID': self.device_id,
             }
         return True
 
@@ -208,7 +208,7 @@ class WXBot:
             'sid': self.sid,
             'uin': self.uin,
             'skey': self.skey,
-            'deviceid': self.deviceId,
+            'deviceid': self.device_id,
             'synckey': self.sync_key_str,
             '_': int(time.time()),
         }
@@ -359,7 +359,7 @@ class WXBot:
                     group = self.get_user_remark_name(msg['FromUserName'])
                     name = self.get_user_remark_name(people)
                     msg_type_id = 4
-                    content = {'group_id': msg['FromUserName'], 'group_name': group, 'user': people, 'user_name': name}
+                    content = {'group_id': msg['FromUserName'], 'group_name': group, 'user': people, 'user_name': name, 'msg': content}
                     if self.DEBUG:
                         print '[Group] |%s| %s: %s' % (group, name, content.replace('<br/>','\n'))
 
