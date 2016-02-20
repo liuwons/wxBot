@@ -1,11 +1,11 @@
 # wxBot [![star this repo](http://github-svg-buttons.herokuapp.com/star.svg?user=liuwons&repo=wxBot&style=flat&background=1081C1)](http://github.com/liuwons/wxBot) [![fork this repo](http://github-svg-buttons.herokuapp.com/fork.svg?user=liuwons&repo=wxBot&style=flat&background=1081C1)](http://github.com/liuwons/wxBot/fork) ![python](https://img.shields.io/badge/python-2.7-ff69b4.svg)
 
-Python包装WEB微信实现的微信机器人框架。可以很容易地实现微信机器人。
+Python包装Web微信实现的微信机器人框架。可以很容易地实现微信机器人。
 
 ## 环境与依赖
 
 目前只能运行于Windows下的Python 2环境 。
-wxBot用到了Python requests 和 pyqrcode库，使用之前需要安装这两个库:
+**wxBot** 用到了Python **requests** 和 **pyqrcode** 库，使用之前需要安装这两个库:
 
 ```bash
 pip install requests
@@ -15,17 +15,24 @@ pip install pyqrcode
 ## 快速开发
 ### 代码
 
-利用 **wxBot** 最简单的方法就是继承WXBot类并实现handle_msg_all函数，然后实例化子类并run，如下的代码对所有的文本消息回复 hi 。
+利用 **wxBot** 最简单的方法就是继承WXBot类并实现handle_msg_all或者schedule函数，然后实例化子类并run，如下的代码对所有的文本消息回复 "hi"， 并不断向好友tb发送"schedule"。
+handle_msg_all函数用于处理收到的每条消息，而schedule函数可以做一些任务性的事情(例如不断向好友推送信息或者一些定时任务)。
+
 ```python
 #!/usr/bin/env python
 # coding: utf-8
 
+import time
 from wxbot import *
 
 class MyWXBot(WXBot):
     def handle_msg_all(self, msg):
         if msg['msg_type_id'] == 5:
             self.send_msg(msg['user_name'], 'hi')
+
+    def schedule(self):
+        self.send_msg('tb', 'schedule')
+        time.sleep(1)
 
 def main():
     bot = MyWXBot()
@@ -34,6 +41,7 @@ def main():
 
 if __name__ == '__main__':
     main()
+
 ```
 
 ### 运行
@@ -101,3 +109,15 @@ WXBot对象在登录并初始化之后,含有以下的可用数据:
 | contact_list | 当前用户的微信联系人列表 |
 | group_list | 当前用户的微信群列表 |
 | session | WXBot与WEB微信服务器端交互所用的requests Session对象 |
+
+WXBot对象还含有一些可以利用的方法：
+
+| 方法 | 描述 |
+| ---- | --- |
+| get_icon(id) | 获取用户icon并保存到本地文件 img_[id].jpg ,id为用户id(Web微信数据) |
+| get_head_img(id) | 获取用户头像并保存到本地文件 img_[id].jpg，id为用户id(Web微信数据) |
+| get_msg_img(msgid) | 获取图像消息并保存到本地文件 img_[msgid].jpg, msgid为消息id(Web微信数据) |
+| get_voice(msgid) | 获取语音消息并保存到本地文件 voice_[msgid].mp3, msgid为消息id(Web微信数据) |
+| get_user_remark_name(uid) | 获取好友的备注名，没有备注名则获取好友微信号， uid为好友的用户id(Web微信数据) |
+| send_msg_by_uid(word, dst) | 向好友发送消息，word为消息字符串，dst为好友用户id(Web微信数据) |
+| send_msg(name, word, isfile) | 向好友发送消息，name为好友的备注名或者好友微信号，isfile为False时word为消息，isfile为True时word为文件路径(此时向好友发送文件里的每一行) |

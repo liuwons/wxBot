@@ -443,6 +443,9 @@ class WXBot:
             message = {'msg_id':msg_id, 'msg_type_id': msg_type_id, 'content': content, 'user_id': msg['FromUserName'], 'user_name': name}
             self.handle_msg_all(message)
 
+    def schedule(self):
+        pass
+
     def proc_msg(self):
         self.test_sync_check()
         while True:
@@ -460,6 +463,7 @@ class WXBot:
                         self.handle_msg(r)
                 elif selector == '0':
                     time.sleep(1)
+            self.schedule()
 
     def send_msg_by_uid(self, word, dst = 'filehelper'):
         url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % (self.pass_ticket)
