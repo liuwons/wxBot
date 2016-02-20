@@ -1,8 +1,8 @@
 # wxBot [![star this repo](http://github-svg-buttons.herokuapp.com/star.svg?user=liuwons&repo=wxBot&style=flat&background=1081C1)](http://github.com/liuwons/wxBot) [![fork this repo](http://github-svg-buttons.herokuapp.com/fork.svg?user=liuwons&repo=wxBot&style=flat&background=1081C1)](http://github.com/liuwons/wxBot/fork) ![python](https://img.shields.io/badge/python-2.7-ff69b4.svg)
 
-Python包装的网页微信API。可以很容易地实现微信机器人。
+Python包装WEB微信实现的微信机器人框架。可以很容易地实现微信机器人。
 
-## Dependencies
+## 依赖
 程序用到了Python requests 和 pyqrcode库，使用之前需要安装这两个库:
 
 ```bash
@@ -10,7 +10,7 @@ pip install requests
 pip install pyqrcode
 ```
 
-## Example
+## 快速开发
 ### 代码
 
 利用 **wxBot** 最简单的方法就是继承WXBot类并实现handle_msg_all函数，然后实例化子类并run，如下的代码对所有的文本消息回复 hi 。
@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
 ### 运行
 
-直接用python运行代码(如代码为main.py时)
+直接用python运行代码(如运行测试代码main.py):
 
 ``` python
 python main.py
@@ -49,8 +49,8 @@ python main.py
 
 ![1](img/1.png)
 
-## Demo
-利用 **[图灵机器人](http://www.tuling123.com/)** 做自动回复之后，通过测试账号发送各种消息的效果：
+## 效果展示
+测试代码main.py的运行效果：
 
 ![向机器人发送消息](img/send_msg.png)
 
