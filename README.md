@@ -4,7 +4,7 @@ Python包装Web微信实现的微信机器人框架。可以很容易地实现�
 
 ## 环境与依赖
 
-目前只能运行于Windows下的Python 2环境 。
+目前只能运行于Python 2环境 。
 **wxBot** 用到了Python **requests** 和 **pyqrcode** 库，使用之前需要安装这两个库:
 
 ```bash
