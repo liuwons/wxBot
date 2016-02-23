@@ -43,6 +43,8 @@ class WXBot:
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
 
+        self.conf = {'qr': 'tty',}
+
     def get_uuid(self):
         url = 'https://login.weixin.qq.com/jslogin'
         params = {
@@ -68,8 +70,11 @@ class WXBot:
         qr.border = 1
         qr.add_data(string)
         qr.make(fit=True)
-        img = qr.make_image()
-        img.save(qr_file_path)
+        if self.conf['qr'] == 'jpg':
+            img = qr.make_image()
+            img.save(qr_file_path)
+        elif self.conf['qr'] == 'tty':
+            qr.print_tty()
 
     def wait4login(self, tip):
         time.sleep(tip)
@@ -522,7 +527,7 @@ class WXBot:
     def run(self):
         self.get_uuid()
         self.gen_qr_code('qr.png')
-        print '[INFO] Please use WeCaht to scan QR code in qr.png .'
+        print '[INFO] Please use WeCaht to scan the QR code .'
         self.wait4login(1)
         print '[INFO] Please confirm to login .'
         self.wait4login(0)
