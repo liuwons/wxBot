@@ -70,7 +70,7 @@ class WXBot:
         qr.border = 1
         qr.add_data(string)
         qr.make(fit=True)
-        if self.conf['qr'] == 'jpg':
+        if self.conf['qr'] == 'png':
             img = qr.make_image()
             img.save(qr_file_path)
         elif self.conf['qr'] == 'tty':

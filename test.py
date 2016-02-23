@@ -17,6 +17,7 @@ class MyWXBot(WXBot):
 def main():
     bot = MyWXBot()
     bot.DEBUG = True
+    bot.conf['qr'] = 'png'
     bot.run()
 
 if __name__ == '__main__':
