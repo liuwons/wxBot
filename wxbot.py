@@ -127,7 +127,7 @@ class WXBot:
         params = {
             'BaseRequest': self.base_request
         }
-        r = self.session.post(url, json=params)
+        r = self.session.post(url, data=json.dumps(params))
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
         self.sync_key = dic['SyncKey']
@@ -145,14 +145,14 @@ class WXBot:
             "ToUserName": self.user['UserName'],
             "ClientMsgId": int(time.time())
         }
-        r = self.session.post(url, json=params)
+        r = self.session.post(url, data=json.dumps(params))
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
         return dic['BaseResponse']['Ret'] == 0
 
     def get_contact(self):
         url = self.base_uri + '/webwxgetcontact?pass_ticket=%s&skey=%s&r=%s' % (self.pass_ticket, self.skey, int(time.time()))
-        r = self.session.post(url, json={})
+        r = self.session.post(url, data='{}')
         r.encoding = 'utf-8'
         if self.DEBUG:
             with open('contacts.json', 'w') as f:
@@ -228,7 +228,7 @@ class WXBot:
             'SyncKey': self.sync_key,
             'rr': ~int(time.time())
         }
-        r = self.session.post(url, json=params)
+        r = self.session.post(url, data=json.dumps(params))
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
         if dic['BaseResponse']['Ret'] == 0:
@@ -521,8 +521,8 @@ class WXBot:
 
     def run(self):
         self.get_uuid()
-        self.gen_qr_code('qr.jpg')
-        print '[INFO] Please use WeCaht to scan QR code in qr.jpg .'
+        self.gen_qr_code('qr.png')
+        print '[INFO] Please use WeCaht to scan QR code in qr.png .'
         self.wait4login(1)
         print '[INFO] Please confirm to login .'
         self.wait4login(0)
