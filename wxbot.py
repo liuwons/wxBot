@@ -43,7 +43,7 @@ class WXBot:
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
 
-        self.conf = {'qr': 'tty',}
+        self.conf = {'qr': 'png',}
 
     def get_uuid(self):
         url = 'https://login.weixin.qq.com/jslogin'
