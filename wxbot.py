@@ -37,8 +37,10 @@ class WXBot:
         self.sync_key = []
         self.user = []
         self.member_list = []
-        self.contact_list = []
-        self.group_list = []
+        self.contact_list = []  # contact list
+        self.public_list = []   # public account list
+        self.group_list = []    # group chat list
+        self.special_list = []  # special list account
         self.sync_host = ''
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
@@ -172,18 +174,24 @@ class WXBot:
         for contact in contact_list:
             if contact['VerifyFlag'] & 8 != 0: # public account
                 contact_list.remove(contact)
+                self.public_list.append(contact)
             elif contact['UserName'] in SpecialUsers: # special account
                 contact_list.remove(contact)
+                self.special_list.append(contact)
             elif contact['UserName'].find('@@') != -1: # group
-                self.group_list.append(contact)
                 contact_list.remove(contact)
+                self.group_list.append(contact)
             elif contact['UserName'] == self.user['UserName']: # self
                 contact_list.remove(contact)
         self.contact_list = contact_list
 
         if self.DEBUG:
-            with open('contactlist.json', 'w') as f:
+            with open('contact_list.json', 'w') as f:
                 f.write(json.dumps(self.contact_list))
+            with open('special_list.json', 'w') as f:
+                f.write(json.dumps(self.special_list))
+            with open('group_list.json', 'w') as f:
+                f.write(json.dumps(self.group_list))
 
         return True
 
@@ -298,8 +306,24 @@ class WXBot:
                 return member['UserName']
         return None
 
+    def get_user_type(self, wx_user_id):
+        for account in self.contact_list:
+            if wx_user_id == account['UserName']:
+                return 'contact'
+        for account in self.public_list:
+            if wx_user_id == account['UserName']:
+                return 'public'
+        for account in self.special_list:
+            if wx_user_id == account['UserName']:
+                return 'special'
+        for account in self.group_list:
+            if wx_user_id == account['UserName']:
+                return 'group'
+        return 'unknown'
+
     '''
     msg:
+        user_type
         msg_id
         msg_type_id
         user_id
@@ -331,7 +355,10 @@ class WXBot:
         for msg in r['AddMsgList']:
             mtype = msg['MsgType']
 
-            name = self.get_user_remark_name(msg['FromUserName'])
+            wx_user_id = msg['FromUserName']
+            user_type = self.get_user_type(wx_user_id)
+
+            name = self.get_user_remark_name(wx_user_id)
             content = msg['Content'].replace('&lt;','<').replace('&gt;','>')
             msg_id = msg['MsgId']
             msg_type_id = 99
@@ -445,7 +472,7 @@ class WXBot:
                 if self.DEBUG:
                     print '[Unknown] : %s' % str(mtype)
                     print msg
-            message = {'msg_id':msg_id, 'msg_type_id': msg_type_id, 'content': content, 'user_id': msg['FromUserName'], 'user_name': name}
+            message = {'user_type': user_type, 'msg_id':msg_id, 'msg_type_id': msg_type_id, 'content': content, 'user_id': msg['FromUserName'], 'user_name': name}
             self.handle_msg_all(message)
 
     def schedule(self):

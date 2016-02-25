@@ -15,7 +15,7 @@ pip install pyqrcode
 ## 快速开发
 ### 代码
 
-利用 **wxBot** 最简单的方法就是继承WXBot类并实现handle_msg_all或者schedule函数，然后实例化子类并run，如下的代码对所有的文本消息回复 "hi"， 并不断向好友tb发送"schedule"。
+利用 **wxBot** 最简单的方法就是继承WXBot类并实现handle_msg_all或者schedule函数，然后实例化子类并run，如下的代码对所有来自好友的文本消息回复 "hi"， 并不断向好友tb发送"schedule"。
 handle_msg_all函数用于处理收到的每条消息，而schedule函数可以做一些任务性的事情(例如不断向好友推送信息或者一些定时任务)。
 
 ```python
@@ -27,8 +27,8 @@ from wxbot import *
 
 class MyWXBot(WXBot):
     def handle_msg_all(self, msg):
-        if msg['msg_type_id'] == 5:
-            self.send_msg(msg['user_name'], 'hi')
+        if msg['msg_type_id'] == 5 and msg['user_type'] == 'contact':
+            self.send_msg_by_uid('hi'， msg['user_id'])
 
     def schedule(self):
         self.send_msg('tb', 'schedule')
@@ -77,11 +77,21 @@ handle_msg_all函数的参数msg是代表一条消息的字典。一般包含以
 
 | 字段名 | 意义 |
 | ----- | --- |
+| user_type | 用户类型,具体见用户类型表 |
 | msg_id | 消息id，微信内部数据 |
 | msg_type_id | 消息类型，具体见消息类型表 |
 | user_id | 发送消息的用户的id，微信内部数据 |
 | user_name | 发送消息的用户的名字，为备注名或者微信用户名 |
 | content | 消息体，不同类型消息的此字段内容不同，具体见消息类型表 |
+
+用户类型表：
+| 类型名 | 意义 |
+| ----- | ---- |
+| contact | 好友 |
+| public | 公众号 |
+| group | 群 |
+| special | 特殊账号 |
+| unknown | 未知 |
 
 消息类型表：
 
