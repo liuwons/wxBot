@@ -167,23 +167,25 @@ class WXBot:
         dic = json.loads(r.text)
         self.member_list = dic['MemberList']
 
-        contact_list = self.member_list[:]
         SpecialUsers = ['newsapp','fmessage','filehelper','weibo','qqmail','fmessage','tmessage','qmessage','qqsync','floatbottle','lbsapp','shakeapp','medianote',
             'qqfriend','readerapp','blogapp','facebookapp','masssendapp','meishiapp','feedsapp','voip','blogappweixin','weixin','brandsessionholder','weixinreminder','wxid_novlwrv3lqwv11',
             'gh_22b87fa7cb3c','officialaccounts','notification_messages','wxid_novlwrv3lqwv11','gh_22b87fa7cb3c','wxitil','userexperience_alarm','notification_messages']
-        for contact in contact_list:
+
+        self.contact_list = []
+        self.public_list = []
+        self.special_list = []
+        self.group_list = []
+        for contact in self.member_list:
             if contact['VerifyFlag'] & 8 != 0: # public account
-                contact_list.remove(contact)
                 self.public_list.append(contact)
             elif contact['UserName'] in SpecialUsers: # special account
-                contact_list.remove(contact)
                 self.special_list.append(contact)
             elif contact['UserName'].find('@@') != -1: # group
-                contact_list.remove(contact)
                 self.group_list.append(contact)
             elif contact['UserName'] == self.user['UserName']: # self
-                contact_list.remove(contact)
-        self.contact_list = contact_list
+                pass
+            else:
+                self.contact_list.append(contact)
 
         if self.DEBUG:
             with open('contact_list.json', 'w') as f:
@@ -192,6 +194,8 @@ class WXBot:
                 f.write(json.dumps(self.special_list))
             with open('group_list.json', 'w') as f:
                 f.write(json.dumps(self.group_list))
+            with open('public_list.json', 'w') as f:
+                f.write(json.dumps(self.public_list))
 
         return True
 
