@@ -513,7 +513,7 @@ class WXBot:
         else:
             if self.DEBUG:
                 print '[ERROR] This user does not exist .'
-            return False
+            return True
 
     def search_content(self, key, content, fmat = 'attr'):
         if fmat == 'attr':
