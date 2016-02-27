@@ -75,12 +75,8 @@ class WXBot:
 
     def gen_qr_code(self):
         string = 'https://login.weixin.qq.com/l/' + self.uuid
-        qr = pyqrcode.QRCode()
-        qr.border = 1
-        qr.add_data(string)
-        qr.make(fit=True)
-        img = qr.make_image()
-        img.save('qr.jpg')
+        qr = pyqrcode.create(string)
+        qr.png('qr.jpg')
 
     def wait4login(self, tip):
         time.sleep(tip)

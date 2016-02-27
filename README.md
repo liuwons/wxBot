@@ -8,6 +8,7 @@ Python包装的网页微信API。可以很容易地实现微信机器人。
 ```bash
 pip install requests
 pip install pyqrcode
+pip install pypng
 ```
 
 ## Demo
