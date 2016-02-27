@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
-import qrcode
+from collections import defaultdict
+import pyqrcode
 import requests
 import json
 import xml.dom.minidom
@@ -74,7 +75,7 @@ class WXBot:
 
     def gen_qr_code(self):
         string = 'https://login.weixin.qq.com/l/' + self.uuid
-        qr = qrcode.QRCode()
+        qr = pyqrcode.QRCode()
         qr.border = 1
         qr.add_data(string)
         qr.make(fit=True)
