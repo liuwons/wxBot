@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
-from collections import defaultdict
+
 import pyqrcode
 import requests
 import json
 import xml.dom.minidom
-import multiprocessing
 import urllib
-import time, re, sys, os, random
+import time
+import re
+import random
+
 
 def utf82gbk(string):
     return string.decode('utf8').encode('gbk')
+
 
 def make_unicode(data):
     if not data:
@@ -22,12 +25,13 @@ def make_unicode(data):
         result = data.decode('utf-8')
     return result
 
+
 class WXBot:
     def __init__(self):
         self.DEBUG = False
         self.uuid = ''
         self.base_uri = ''
-        self.redirect_uri= ''
+        self.redirect_uri = ''
         self.uin = ''
         self.sid = ''
         self.skey = ''
@@ -36,7 +40,7 @@ class WXBot:
         self.base_request = {}
         self.sync_key_str = ''
         self.sync_key = []
-        self.user = []
+        self.user = {}
         self.member_list = []
         self.contact_list = []  # contact list
         self.public_list = []   # public account list
@@ -46,7 +50,7 @@ class WXBot:
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
 
-        self.conf = {'qr': 'png',}
+        self.conf = {'qr': 'png'}
 
     def get_uuid(self):
         url = 'https://login.weixin.qq.com/jslogin'
@@ -54,7 +58,7 @@ class WXBot:
             'appid': 'wx782c26e4c19acffb',
             'fun': 'new',
             'lang': 'zh_CN',
-            '_': int(time.time())*1000 + random.randint(1,999),
+            '_': int(time.time())*1000 + random.randint(1, 999),
         }
         r = self.session.get(url, params=params)
         r.encoding = 'utf-8'
@@ -77,7 +81,8 @@ class WXBot:
             
     def wait4login(self, tip):
         time.sleep(tip)
-        url = 'https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?tip=%s&uuid=%s&_=%s' % (tip, self.uuid, int(time.time()))
+        url = 'https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?tip=%s&uuid=%s&_=%s' \
+              % (tip, self.uuid, int(time.time()))
         r = self.session.get(url)
         r.encoding = 'utf-8'
         data = r.text
@@ -136,11 +141,12 @@ class WXBot:
         dic = json.loads(r.text)
         self.sync_key = dic['SyncKey']
         self.user = dic['User']
-        self.sync_key_str = '|'.join([ str(keyVal['Key']) + '_' + str(keyVal['Val']) for keyVal in self.sync_key['List'] ])
+        self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
+                                      for keyVal in self.sync_key['List']])
         return dic['BaseResponse']['Ret'] == 0
 
     def status_notify(self):
-        url = self.base_uri + '/webwxstatusnotify?lang=zh_CN&pass_ticket=%s' % (self.pass_ticket)
+        url = self.base_uri + '/webwxstatusnotify?lang=zh_CN&pass_ticket=%s' % self.pass_ticket
         self.base_request['Uin'] = int(self.base_request['Uin'])
         params = {
             'BaseRequest': self.base_request,
@@ -155,7 +161,8 @@ class WXBot:
         return dic['BaseResponse']['Ret'] == 0
 
     def get_contact(self):
-        url = self.base_uri + '/webwxgetcontact?pass_ticket=%s&skey=%s&r=%s' % (self.pass_ticket, self.skey, int(time.time()))
+        url = self.base_uri + '/webwxgetcontact?pass_ticket=%s&skey=%s&r=%s' \
+                              % (self.pass_ticket, self.skey, int(time.time()))
         r = self.session.post(url, data='{}')
         r.encoding = 'utf-8'
         if self.DEBUG:
@@ -164,22 +171,27 @@ class WXBot:
         dic = json.loads(r.text)
         self.member_list = dic['MemberList']
 
-        SpecialUsers = ['newsapp','fmessage','filehelper','weibo','qqmail','fmessage','tmessage','qmessage','qqsync','floatbottle','lbsapp','shakeapp','medianote',
-            'qqfriend','readerapp','blogapp','facebookapp','masssendapp','meishiapp','feedsapp','voip','blogappweixin','weixin','brandsessionholder','weixinreminder','wxid_novlwrv3lqwv11',
-            'gh_22b87fa7cb3c','officialaccounts','notification_messages','wxid_novlwrv3lqwv11','gh_22b87fa7cb3c','wxitil','userexperience_alarm','notification_messages']
+        special_users = ['newsapp', 'fmessage', 'filehelper', 'weibo', 'qqmail',
+                         'fmessage', 'tmessage', 'qmessage', 'qqsync', 'floatbottle',
+                         'lbsapp', 'shakeapp', 'medianote', 'qqfriend', 'readerapp',
+                         'blogapp', 'facebookapp', 'masssendapp', 'meishiapp',
+                         'feedsapp', 'voip', 'blogappweixin', 'weixin', 'brandsessionholder',
+                         'weixinreminder', 'wxid_novlwrv3lqwv11', 'gh_22b87fa7cb3c',
+                         'officialaccounts', 'notification_messages', 'wxid_novlwrv3lqwv11',
+                         'gh_22b87fa7cb3c', 'wxitil', 'userexperience_alarm', 'notification_messages']
 
         self.contact_list = []
         self.public_list = []
         self.special_list = []
         self.group_list = []
         for contact in self.member_list:
-            if contact['VerifyFlag'] & 8 != 0: # public account
+            if contact['VerifyFlag'] & 8 != 0:  # public account
                 self.public_list.append(contact)
-            elif contact['UserName'] in SpecialUsers: # special account
+            elif contact['UserName'] in special_users:  # special account
                 self.special_list.append(contact)
-            elif contact['UserName'].find('@@') != -1: # group
+            elif contact['UserName'].find('@@') != -1:  # group
                 self.group_list.append(contact)
-            elif contact['UserName'] == self.user['UserName']: # self
+            elif contact['UserName'] == self.user['UserName']:  # self
                 pass
             else:
                 self.contact_list.append(contact)
@@ -193,6 +205,8 @@ class WXBot:
                 f.write(json.dumps(self.group_list))
             with open('public_list.json', 'w') as f:
                 f.write(json.dumps(self.public_list))
+            with open('member_list.json', 'w') as f:
+                f.write(json.dumps(self.member_list))
 
         return True
 
@@ -201,17 +215,17 @@ class WXBot:
         params = {
             'BaseRequest': self.base_request,
             "Count": len(self.group_list),
-            "List": [ {"UserName": g['UserName'], "EncryChatRoomId":""} for g in self.group_list ]
+            "List": [{"UserName": g['UserName'], "EncryChatRoomId":""} for g in self.group_list]
         }
         r = self.session.post(url, data=params)
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
-        return True
+        return dic
 
     def test_sync_check(self):
         for host in ['webpush', 'webpush2']:
             self.sync_host = host
-            [retcode, selector] = self.sync_check()
+            retcode = self.sync_check()[0]
             if retcode == '0':
                 return True
         return False
@@ -230,13 +244,14 @@ class WXBot:
         r = self.session.get(url)
         r.encoding = 'utf-8'
         data = r.text
-        pm = re.search(r'window.synccheck={retcode:"(\d+)",selector:"(\d+)"}', data)
+        pm = re.search(r'window.synccheck=\{retcode:"(\d+)",selector:"(\d+)"\}', data)
         retcode = pm.group(1)
         selector = pm.group(2)
         return [retcode, selector]
 
     def sync(self):
-        url = self.base_uri + '/webwxsync?sid=%s&skey=%s&lang=en_US&pass_ticket=%s' % (self.sid, self.skey, self.pass_ticket)
+        url = self.base_uri + '/webwxsync?sid=%s&skey=%s&lang=en_US&pass_ticket=%s' \
+                              % (self.sid, self.skey, self.pass_ticket)
         params = {
             'BaseRequest': self.base_request,
             'SyncKey': self.sync_key,
@@ -247,23 +262,24 @@ class WXBot:
         dic = json.loads(r.text)
         if dic['BaseResponse']['Ret'] == 0:
             self.sync_key = dic['SyncKey']
-            self.sync_key_str = '|'.join([ str(keyVal['Key']) + '_' + str(keyVal['Val']) for keyVal in self.sync_key['List'] ])
+            self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
+                                          for keyVal in self.sync_key['List']])
         return dic
 
-    def get_icon(self, id):
-        url = self.base_uri + '/webwxgeticon?username=%s&skey=%s' % (id, self.skey)
+    def get_icon(self, uid):
+        url = self.base_uri + '/webwxgeticon?username=%s&skey=%s' % (uid, self.skey)
         r = self.session.get(url)
         data = r.content
-        fn = 'img_'+id+'.jpg'
+        fn = 'img_'+uid+'.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
         return fn
 
-    def get_head_img(self, id):
-        url = self.base_uri + '/webwxgetheadimg?username=%s&skey=%s' % (id, self.skey)
+    def get_head_img(self, uid):
+        url = self.base_uri + '/webwxgetheadimg?username=%s&skey=%s' % (uid, self.skey)
         r = self.session.get(url)
         data = r.content
-        fn = 'img_'+id+'.jpg'
+        fn = 'img_'+uid+'.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
         return fn
@@ -292,7 +308,7 @@ class WXBot:
             f.write(data)
         return fn
 
-    #Get the NickName or RemarkName of an user by user id
+    # Get the NickName or RemarkName of an user by user id
     def get_user_remark_name(self, uid):
         name = 'unknown group' if uid[:2] == '@@' else 'stranger'
         for member in self.member_list:
@@ -300,7 +316,7 @@ class WXBot:
                 name = member['RemarkName'] if member['RemarkName'] else member['NickName']
         return name
 
-    #Get user id of an user
+    # Get user id of an user
     def get_user_id(self, name):
         for member in self.member_list:
             if name == member['RemarkName'] or name == member['NickName'] or name == member['UserName']:
@@ -322,158 +338,211 @@ class WXBot:
                 return 'group'
         return 'unknown'
 
+    def is_contact(self, uid):
+        for account in self.contact_list:
+            if uid == account['UserName']:
+                return True
+        return False
+
+    def is_public(self, uid):
+        for account in self.public_list:
+            if uid == account['UserName']:
+                return True
+        return False
+
+    def is_special(self, uid):
+        for account in self.special_list:
+            if uid == account['UserName']:
+                return True
+        return False
+
     '''
     msg:
-        user_type
-        msg_id
-        msg_type_id
-        user_id
-        user_name
-        content
+        user
+        type
+        data
+        detail
     '''
     def handle_msg_all(self, msg):
         pass
 
     '''
-    msg_type_id:
+    content_type_id:
+        0 -> Text
         1 -> Location
+        3 -> Image
+        4 -> Voice
+        5 -> Recommend
+        6 -> Animation
+        7 -> Share
+        8 -> Video
+        9 -> VideoCall
+        10 -> Redraw
+        11 -> Empty
+        99 -> Unknown
+    '''
+    def extract_msg_content(self, msg_type_id, msg):
+        mtype = msg['MsgType']
+        content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
+        msg_id = msg['MsgId']
+
+        msg_content = {}
+        if msg_type_id == 0:
+            return {'type': 11, 'data': ''}
+        elif msg_type_id == 2:  # File Helper
+            return {'type': 0, 'data': content.replace('<br/>', '\n')}
+        elif msg_type_id == 3:  # Group
+            sp = content.find('<br/>')
+            uid = content[:sp]
+            content = content[sp:]
+            content = content.replace('<br/>', '')
+            uid = uid[:-1]
+            msg_content['user'] = {'id': uid, 'name': self.get_user_remark_name(uid)}
+            if self.DEBUG:
+                print msg_content['user']
+        else:                   # Self, Contact, Special, Public, Unknown
+            pass
+
+        if mtype == 1:
+            if content.find('http://weixin.qq.com/cgi-bin/redirectforward?args=') != -1:
+                r = self.session.get(content)
+                r.encoding = 'gbk'
+                data = r.text
+                pos = self.search_content('title', data, 'xml')
+                msg_content['type'] = 1
+                msg_content['data'] = pos
+                msg_content['detail'] = data
+                if self.DEBUG:
+                    print '[Location] I am at %s ' % pos
+            else:
+                msg_content['type'] = 0
+                msg_content['data'] = content
+                if self.DEBUG:
+                    print '[Text] %s' % content
+        elif mtype == 3:
+            msg_content['type'] = 3
+            msg_content['data'] = self.get_msg_img_url(msg_id)
+            if self.DEBUG:
+                image = self.get_msg_img(msg_id)
+                print '[Image] %s' % image
+        elif mtype == 34:
+            msg_content['type'] = 4
+            msg_content['data'] = self.get_voice_url(msg_id)
+            if self.DEBUG:
+                voice = self.get_voice(msg_id)
+                print '[Voice] %s' % voice
+        elif mtype == 42:
+            msg_content['type'] = 5
+            info = msg['RecommendInfo']
+            msg_content['data'] = {'nickname': info['NickName'],
+                                   'alias': info['Alias'],
+                                   'province': info['Province'],
+                                   'city': info['City'],
+                                   'gender': ['unknown', 'male', 'female'][info['Sex']]}
+            if self.DEBUG:
+                print '[Recommend]'
+                print '========================='
+                print '= NickName: %s' % info['NickName']
+                print '= Alias: %s' % info['Alias']
+                print '= Local: %s %s' % (info['Province'], info['City'])
+                print '= Gender: %s' % ['unknown', 'male', 'female'][info['Sex']]
+                print '========================='
+        elif mtype == 47:
+            msg_content['type'] = 6
+            msg_content['data'] = self.search_content('cdnurl', content)
+            if self.DEBUG:
+                print '[Animation] %s' % msg_content['data']
+        elif mtype == 49:
+            msg_content['type'] = 7
+            app_msg_type = ''
+            if msg['AppMsgType'] == 3:
+                app_msg_type = 'music'
+            elif msg['AppMsgType'] == 5:
+                app_msg_type = 'link'
+            elif msg['AppMsgType'] == 7:
+                app_msg_type = 'weibo'
+            else:
+                app_msg_type = 'unknown'
+            msg_content['data'] = {'type': app_msg_type,
+                                   'title': msg['FileName'],
+                                   'desc': self.search_content('des', content, 'xml'),
+                                   'url': msg['Url'],
+                                   'from': self.search_content('appname', content, 'xml')}
+            if self.DEBUG:
+                print '[Share] %s' % app_msg_type
+                print '========================='
+                print '= title: %s' % msg['FileName']
+                print '= desc: %s' % self.search_content('des', content, 'xml')
+                print '= link: %s' % msg['Url']
+                print '= from: %s' % self.search_content('appname', content, 'xml')
+                print '========================='
+
+        elif mtype == 62:
+            msg_content['type'] = 8
+            msg_content['data'] = content
+            if self.DEBUG:
+                print '[Video] Please check on mobiles'
+        elif mtype == 53:
+            msg_content['type'] = 9
+            msg_content['data'] = content
+            if self.DEBUG:
+                print '[Video Call]'
+        elif mtype == 10002:
+            msg_content['type'] = 10
+            msg_content['data'] = content
+            if self.DEBUG:
+                print '[Redraw]'
+        else:
+            msg_content['type'] = 99
+            msg_content['data'] = content
+            if self.DEBUG:
+                print '[Unknown]'
+        return msg_content
+
+    '''
+    msg_type_id:
+        0 -> Init
+        1 -> Self
         2 -> FileHelper
-        3 -> Self
-        4 -> Group
-        5 -> User Text Message
-        6 -> Image
-        7 -> Voice
-        8 -> Recommend
-        9 -> Animation
-        10 -> Share
-        11 -> Video
-        12 -> Video Call
-        13 -> Redraw
-        14 -> Init Message
+        3 -> Group
+        4 -> Contact
+        5 -> Public
+        6 -> Special
         99 -> Unknown
     '''
     def handle_msg(self, r):
         for msg in r['AddMsgList']:
-            mtype = msg['MsgType']
-
-            wx_user_id = msg['FromUserName']
-            user_type = self.get_user_type(wx_user_id)
-
-            name = self.get_user_remark_name(wx_user_id)
-            content = msg['Content'].replace('&lt;','<').replace('&gt;','>')
-            msg_id = msg['MsgId']
             msg_type_id = 99
-
-
-            if mtype == 51: #init message
-                msg_type_id = 14
-            elif mtype == 1:
-                if content.find('http://weixin.qq.com/cgi-bin/redirectforward?args=') != -1:
-                    r = self.session.get(content)
-                    r.encoding = 'gbk'
-                    data = r.text
-                    pos = self.search_content('title', data, 'xml')
-                    msg_type_id = 1
-                    content = {'location': pos, 'xml': data}
-                    if self.DEBUG:
-                        print '[Location] %s : I am at %s ' % (name, pos)
-
-                elif msg['ToUserName'] == 'filehelper':
-                    msg_type_id = 2
-                    content = content.replace('<br/>','\n')
-                    if self.DEBUG:
-                        print '[File] %s : %s' % (name, )
-
-                elif msg['FromUserName'] == self.user['UserName']: #self
-                    msg_type_id = 3
-
-                elif msg['FromUserName'][:2] == '@@':
-                    [people, content] = content.split(':<br/>')
-                    group = self.get_user_remark_name(msg['FromUserName'])
-                    name = self.get_user_remark_name(people)
-                    msg_type_id = 4
-                    content = {'group_id': msg['FromUserName'], 'group_name': group, 'user': people, 'user_name': name, 'msg': content}
-                    if self.DEBUG:
-                        print '[Group] |%s| %s: %s' % (group, name, content.replace('<br/>','\n'))
-
-                else:
-                    msg_type_id = 5
-                    if self.DEBUG:
-                        print '[Text] ', name, ' : ', content
-
-            elif mtype == 3:
+            user = {'id': msg['FromUserName']}
+            if msg['MsgType'] == 51:  # init message
+                msg_type_id = 0
+            elif msg['FromUserName'] == self.user['UserName']:  # Self
+                msg_type_id = 1
+                user['name'] = 'self'
+            elif msg['ToUserName'] == 'filehelper':  # File Helper
+                msg_type_id = 2
+                user['name'] = 'file_helper'
+            elif msg['FromUserName'][:2] == '@@':  # Group
+                msg_type_id = 3
+                user['name'] = self.get_user_remark_name(user['id'])
+                if self.DEBUG:
+                    print '[From] %s' % user['name']
+            elif self.is_contact(msg['FromUserName']):  # Contact
+                msg_type_id = 4
+                user['name'] = self.get_user_remark_name(user['id'])
+            elif self.is_public(msg['FromUserName']):  # Public
+                msg_type_id = 5
+                user['name'] = self.get_user_remark_name(user['id'])
+            elif self.is_special(msg['FromUserName']):  # Special
                 msg_type_id = 6
-                content = self.get_msg_img_url(msg_id)
-                if self.DEBUG:
-                    image = self.get_msg_img(msg_id)
-                    print '[Image] %s : %s' % (name, image)
-
-            elif mtype == 34:
-                msg_type_id = 7
-                content = self.get_voice_url(msg_id)
-                if self.DEBUG:
-                    voice = self.get_voice(msg_id)
-                    print '[Voice] %s : %s' % (name, voice)
-
-            elif mtype == 42:
-                msg_type_id = 8
-
-                info = msg['RecommendInfo']
-                content = {}
-                content['nickname'] = info['NickName']
-                content['alias'] = info['Alias']
-                content['province'] = info['Province']
-                content['city'] = info['City']
-                content['gender'] = ['unknown', 'male', 'female'][info['Sex']]
-                if self.DEBUG:
-                    print '[Recommend] %s : ' % name
-                    print '========================='
-                    print '= NickName: %s' % info['NickName']
-                    print '= Alias: %s' % info['Alias']
-                    print '= Local: %s %s' % (info['Province'], info['City'])
-                    print '= Gender: %s' % ['unknown', 'male', 'female'][info['Sex']]
-                    print '========================='
-
-            elif mtype == 47:
-                msg_type_id = 9
-                url = self.search_content('cdnurl', content)
-                content = url
-                if self.DEBUG:
-                    print '[Animation] %s : %s' % (name, url)
-
-            elif mtype == 49:
-                msg_type_id = 10
-                appMsgType = defaultdict(lambda : "")
-                appMsgType.update({5:'link', 3:'music', 7:'weibo'})
-                content = {'type': appMsgType[msg['AppMsgType']], 'title': msg['FileName'], 'desc': self.search_content('des', content, 'xml'), 'url': msg['Url'], 'from': self.search_content('appname', content, 'xml')}
-                if self.DEBUG:
-                    print '[Share] %s : %s' % (name, appMsgType[msg['AppMsgType']])
-                    print '========================='
-                    print '= title: %s' % msg['FileName']
-                    print '= desc: %s' % self.search_content('des', content, 'xml')
-                    print '= link: %s' % msg['Url']
-                    print '= from: %s' % self.search_content('appname', content, 'xml')
-                    print '========================='
-
-            elif mtype == 62:
-                msg_type_id = 11
-                if self.DEBUG:
-                    print '[Video] ', name, ' sent you a video, please check on mobiles'
-
-            elif mtype == 53:
-                msg_type_id = 12
-                if self.DEBUG:
-                    print '[Video Call] ', name, ' call you'
-            elif mtype == 10002:
-                msg_type_id = 13
-                if self.DEBUG:
-                    print '[Redraw] ', name, ' redraw back a message'
+                user['name'] = self.get_user_remark_name(user['id'])
             else:
-                msg_type_id = 99
-                if self.DEBUG:
-                    print '[Unknown] : %s' % str(mtype)
-                    print msg
-            message = {'user_type': user_type, 'msg_id':msg_id, 'msg_type_id': msg_type_id, 'content': content, 'user_id': msg['FromUserName'], 'user_name': name}
+                pass  # Unknown
+            content = self.extract_msg_content(msg_type_id, msg)
+            message = {'msg_type_id': msg_type_id,
+                       'msg_id': msg['MsgId'],
+                       'content': content,
+                       'user': user}
             self.handle_msg_all(message)
 
     def schedule(self):
@@ -483,14 +552,14 @@ class WXBot:
         self.test_sync_check()
         while True:
             [retcode, selector] = self.sync_check()
-            if retcode == '1100': # User have login on mobile
+            if retcode == '1100':  # User have login on mobile
                 pass
             elif retcode == '0':
                 if selector == '2':
                     r = self.sync()
                     if r is not None:
                         self.handle_msg(r)
-                elif selector == '7': # Play WeChat on mobile
+                elif selector == '7':  # Play WeChat on mobile
                     r = self.sync()
                     if r is not None:
                         self.handle_msg(r)
@@ -498,9 +567,9 @@ class WXBot:
                     time.sleep(1)
             self.schedule()
 
-    def send_msg_by_uid(self, word, dst = 'filehelper'):
-        url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % (self.pass_ticket)
-        msg_id = str(int(time.time()*1000)) + str(random.random())[:5].replace('.','')
+    def send_msg_by_uid(self, word, dst='filehelper'):
+        url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % self.pass_ticket
+        msg_id = str(int(time.time()*1000)) + str(random.random())[:5].replace('.', '')
         params = {
             'BaseRequest': self.base_request,
             'Msg': {
@@ -514,18 +583,18 @@ class WXBot:
         }
         headers = {'content-type': 'application/json; charset=UTF-8'}
         data = json.dumps(params, ensure_ascii=False).encode('utf8')
-        r = self.session.post(url, data = data, headers = headers)
+        r = self.session.post(url, data=data, headers=headers)
         dic = r.json()
         return dic['BaseResponse']['Ret'] == 0
 
-    def send_msg(self, name, word, isfile = False):
+    def send_msg(self, name, word, isfile=False):
         uid = self.get_user_id(name)
         if uid:
             if isfile:
                 with open(word, 'r') as f:
                     result = True
                     for line in f.readlines():
-                        line = line.replace('\n','')
+                        line = line.replace('\n', '')
                         print '-> '+name+': '+line
                         if self.send_msg_by_uid(line, uid):
                             pass
@@ -543,13 +612,15 @@ class WXBot:
                 print '[ERROR] This user does not exist .'
             return True
 
-    def search_content(self, key, content, fmat = 'attr'):
+    def search_content(self, key, content, fmat='attr'):
         if fmat == 'attr':
             pm = re.search(key+'\s?=\s?"([^"<]+)"', content)
-            if pm: return pm.group(1)
+            if pm:
+                return pm.group(1)
         elif fmat == 'xml':
-            pm=re.search('<{0}>([^<]+)</{0}>'.format(key),content)
-            if pm: return pm.group(1)
+            pm = re.search('<{0}>([^<]+)</{0}>'.format(key), content)
+            if pm:
+                return pm.group(1)
         return 'unknown'
 
     def run(self):

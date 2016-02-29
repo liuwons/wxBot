@@ -63,3 +63,5 @@ target/
 
 
 *.json
+
+.idea/
