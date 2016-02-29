@@ -73,10 +73,8 @@ class WXBot:
         if self.conf['qr'] == 'png':
             qr.png(qr_file_path)
         elif self.conf['qr'] == 'tty':
-            print 'Not support tty'
-            pass
-            #qr.print_tty()
-
+            print(qr.terminal(quiet_zone=1))
+            
     def wait4login(self, tip):
         time.sleep(tip)
         url = 'https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?tip=%s&uuid=%s&_=%s' % (tip, self.uuid, int(time.time()))
