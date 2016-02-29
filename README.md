@@ -10,6 +10,7 @@ Python包装Web微信实现的微信机器人框架。可以很容易地实现�
 ```bash
 pip install requests
 pip install pyqrcode
+pip install pypng
 ```
 
 ## 快速开发
