@@ -11,21 +11,6 @@ import re
 import random
 
 
-def utf82gbk(string):
-    return string.decode('utf8').encode('gbk')
-
-
-def make_unicode(data):
-    if not data:
-        return data
-    result = None
-    if type(data) == unicode:
-        result = data
-    elif type(data) == str:
-        result = data.decode('utf-8')
-    return result
-
-
 class WXBot:
     def __init__(self):
         self.DEBUG = False
@@ -399,7 +384,7 @@ class WXBot:
             uid = uid[:-1]
             msg_content['user'] = {'id': uid, 'name': self.get_user_remark_name(uid)}
             if self.DEBUG:
-                print msg_content['user']
+                print msg_content['user']['name']
         else:                   # Self, Contact, Special, Public, Unknown
             pass
 
@@ -413,24 +398,24 @@ class WXBot:
                 msg_content['data'] = pos
                 msg_content['detail'] = data
                 if self.DEBUG:
-                    print '[Location] I am at %s ' % pos
+                    print '    [Location] I am at %s ' % pos
             else:
                 msg_content['type'] = 0
-                msg_content['data'] = content
+                msg_content['data'] = content.replace(u'\u2005', '')
                 if self.DEBUG:
-                    print '[Text] %s' % content
+                    print '    [Text] %s' % msg_content['data']
         elif mtype == 3:
             msg_content['type'] = 3
             msg_content['data'] = self.get_msg_img_url(msg_id)
             if self.DEBUG:
                 image = self.get_msg_img(msg_id)
-                print '[Image] %s' % image
+                print '    [Image] %s' % image
         elif mtype == 34:
             msg_content['type'] = 4
             msg_content['data'] = self.get_voice_url(msg_id)
             if self.DEBUG:
                 voice = self.get_voice(msg_id)
-                print '[Voice] %s' % voice
+                print '    [Voice] %s' % voice
         elif mtype == 42:
             msg_content['type'] = 5
             info = msg['RecommendInfo']
@@ -440,18 +425,18 @@ class WXBot:
                                    'city': info['City'],
                                    'gender': ['unknown', 'male', 'female'][info['Sex']]}
             if self.DEBUG:
-                print '[Recommend]'
-                print '========================='
-                print '= NickName: %s' % info['NickName']
-                print '= Alias: %s' % info['Alias']
-                print '= Local: %s %s' % (info['Province'], info['City'])
-                print '= Gender: %s' % ['unknown', 'male', 'female'][info['Sex']]
-                print '========================='
+                print '    [Recommend]'
+                print '    -----------------------------'
+                print '    | NickName: %s' % info['NickName']
+                print '    | Alias: %s' % info['Alias']
+                print '    | Local: %s %s' % (info['Province'], info['City'])
+                print '    | Gender: %s' % ['unknown', 'male', 'female'][info['Sex']]
+                print '    -----------------------------'
         elif mtype == 47:
             msg_content['type'] = 6
             msg_content['data'] = self.search_content('cdnurl', content)
             if self.DEBUG:
-                print '[Animation] %s' % msg_content['data']
+                print '    [Animation] %s' % msg_content['data']
         elif mtype == 49:
             msg_content['type'] = 7
             app_msg_type = ''
@@ -469,34 +454,34 @@ class WXBot:
                                    'url': msg['Url'],
                                    'from': self.search_content('appname', content, 'xml')}
             if self.DEBUG:
-                print '[Share] %s' % app_msg_type
-                print '========================='
-                print '= title: %s' % msg['FileName']
-                print '= desc: %s' % self.search_content('des', content, 'xml')
-                print '= link: %s' % msg['Url']
-                print '= from: %s' % self.search_content('appname', content, 'xml')
-                print '========================='
+                print '    [Share] %s' % app_msg_type
+                print '    --------------------------'
+                print '    | title: %s' % msg['FileName']
+                print '    | desc: %s' % self.search_content('des', content, 'xml')
+                print '    | link: %s' % msg['Url']
+                print '    | from: %s' % self.search_content('appname', content, 'xml')
+                print '    --------------------------'
 
         elif mtype == 62:
             msg_content['type'] = 8
             msg_content['data'] = content
             if self.DEBUG:
-                print '[Video] Please check on mobiles'
+                print '    [Video] Please check on mobiles'
         elif mtype == 53:
             msg_content['type'] = 9
             msg_content['data'] = content
             if self.DEBUG:
-                print '[Video Call]'
+                print '    [Video Call]'
         elif mtype == 10002:
             msg_content['type'] = 10
             msg_content['data'] = content
             if self.DEBUG:
-                print '[Redraw]'
+                print '    [Redraw]'
         else:
             msg_content['type'] = 99
             msg_content['data'] = content
             if self.DEBUG:
-                print '[Unknown]'
+                print '    [Unknown]'
         return msg_content
 
     '''
@@ -537,7 +522,9 @@ class WXBot:
                 msg_type_id = 6
                 user['name'] = self.get_user_remark_name(user['id'])
             else:
-                pass  # Unknown
+                user['name'] = 'unknown'  # Unknown
+            if self.DEBUG and msg_type_id != 0:
+                print '[MSG] %s:' % user['name']
             content = self.extract_msg_content(msg_type_id, msg)
             message = {'msg_type_id': msg_type_id,
                        'msg_id': msg['MsgId'],
@@ -570,11 +557,13 @@ class WXBot:
     def send_msg_by_uid(self, word, dst='filehelper'):
         url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % self.pass_ticket
         msg_id = str(int(time.time()*1000)) + str(random.random())[:5].replace('.', '')
+        if type(word) == 'str':
+            word = word.decode('utf-8')
         params = {
             'BaseRequest': self.base_request,
             'Msg': {
                 "Type": 1,
-                "Content": make_unicode(word),
+                "Content": word,
                 "FromUserName": self.user['UserName'],
                 "ToUserName": dst,
                 "LocalID": msg_id,
@@ -612,7 +601,8 @@ class WXBot:
                 print '[ERROR] This user does not exist .'
             return True
 
-    def search_content(self, key, content, fmat='attr'):
+    @staticmethod
+    def search_content(key, content, fmat='attr'):
         if fmat == 'attr':
             pm = re.search(key+'\s?=\s?"([^"<]+)"', content)
             if pm:
