@@ -9,6 +9,11 @@ import multiprocessing
 import urllib
 import time, re, sys, os, random
 
+UNKONWN = 'unkonwn'
+SUCCESS = '200'
+SCANED  = '201'
+TIMEOUT = '408'
+
 def utf82gbk(string):
     return string.decode('utf8').encode('gbk')
 
@@ -77,28 +82,58 @@ class WXBot:
             pass
             #qr.print_tty()
 
-    def wait4login(self, tip):
-        time.sleep(tip)
-        url = 'https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?tip=%s&uuid=%s&_=%s' % (tip, self.uuid, int(time.time()))
+    def do_request(self, url):
         r = self.session.get(url)
         r.encoding = 'utf-8'
         data = r.text
         param = re.search(r'window.code=(\d+);', data)
         code = param.group(1)
+        return code, data
 
-        if code == '201':
-            return True
-        elif code == '200':
-            param = re.search(r'window.redirect_uri="(\S+?)";', data)
-            redirect_uri = param.group(1) + '&fun=new'
-            self.redirect_uri = redirect_uri
-            self.base_uri = redirect_uri[:redirect_uri.rfind('/')]
-            return True
-        elif code == '408':
-            print '[ERROR] WeChat login timeout .'
-        else:
-            print '[ERROR] WeChat login exception .'
-        return False
+    def wait4login(self):
+        '''
+        http comet:
+        tip=1, the request wait for user to scan the qr, 
+               201: scaned
+               408: timeout
+        tip=0, the request wait for user confirm, 
+               200: confirmed
+        '''
+        LOGIN_TEMPLATE = 'https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?tip=%s&uuid=%s&_=%s'
+        tip = 1
+
+        try_later_secs = 1
+        MAX_RETRY_TIMES = 10
+        
+        code = UNKONWN
+        
+        retry_time = MAX_RETRY_TIMES
+        while retry_time > 0:
+            url = LOGIN_TEMPLATE % (tip, self.uuid, int(time.time()))
+            code, data = self.do_request(url)
+            if code == SCANED:
+                print '[INFO] Please confirm to login .'
+                tip = 0
+            elif code == SUCCESS: #confirmed sucess
+                param = re.search(r'window.redirect_uri="(\S+?)";', data)
+                redirect_uri = param.group(1) + '&fun=new'
+                self.redirect_uri = redirect_uri
+                self.base_uri = redirect_uri[:redirect_uri.rfind('/')]
+                return code
+            elif code == TIMEOUT:
+                print '[ERROR] WeChat login timeout. retry in %s secs later...'%(try_later_secs, )
+
+                tip = 1 #need to reset tip, because the server will reset the peer connection
+                retry_time -= 1
+                time.sleep(try_later_secs)
+            else:
+                print ('[ERROR] WeChat login exception return_code=%s. retry in %s secs later...' % 
+                        (code, try_later_secs))
+                tip = 1
+                retry_time -= 1
+                time.sleep(try_later_secs)
+            
+        return code
 
     def login(self):
         r = self.session.get(self.redirect_uri)
@@ -558,14 +593,18 @@ class WXBot:
         self.get_uuid()
         self.gen_qr_code('qr.png')
         print '[INFO] Please use WeCaht to scan the QR code .'
-        self.wait4login(1)
-        print '[INFO] Please confirm to login .'
-        self.wait4login(0)
+        
+        result = self.wait4login()
+        if result != SUCCESS:
+            print '[ERROR] Web WeChat login failed. failed code=result'%(result, )
+            return
+        
         if self.login():
             print '[INFO] Web WeChat login succeed .'
         else:
-            print '[ERROR] Web WeChat login failed .'
+            print '[ERROR] Web WeChat login failed.'
             return
+
         if self.init():
             print '[INFO] Web WeChat init succeed .'
         else:
