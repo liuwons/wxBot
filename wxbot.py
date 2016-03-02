@@ -419,7 +419,7 @@ class WXBot:
                     msg_type_id = 2
                     content = content.replace('<br/>','\n')
                     if self.DEBUG:
-                        print '[File] %s : %s' % (name, )
+                        print '[File] %s : %s' % (name, content)
 
                 elif msg['FromUserName'] == self.user['UserName']: #self
                     msg_type_id = 3
