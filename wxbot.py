@@ -244,8 +244,6 @@ class WXBot:
             content = content.replace('<br/>', '')
             uid = uid[:-1]
             msg_content['user'] = {'id': uid, 'name': self.get_prefer_name(self.get_account_name(uid))}
-            if self.DEBUG:
-                print msg_content['user']['name']
         else:  # Self, Contact, Special, Public, Unknown
             pass
 
@@ -261,7 +259,7 @@ class WXBot:
                 msg_content['data'] = pos
                 msg_content['detail'] = data
                 if self.DEBUG:
-                    print '    %s[Location] I am at %s ' % (msg_prefix, pos)
+                    print '    %s[Location] %s ' % (msg_prefix, pos)
             else:
                 msg_content['type'] = 0
                 msg_content['data'] = content.replace(u'\u2005', '')
