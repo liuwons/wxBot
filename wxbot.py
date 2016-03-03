@@ -249,6 +249,8 @@ class WXBot:
         else:  # Self, Contact, Special, Public, Unknown
             pass
 
+        msg_prefix = (msg_content['user']['name'] + ':') if 'user' in msg_content else ''
+
         if mtype == 1:
             if content.find('http://weixin.qq.com/cgi-bin/redirectforward?args=') != -1:
                 r = self.session.get(content)
@@ -259,24 +261,24 @@ class WXBot:
                 msg_content['data'] = pos
                 msg_content['detail'] = data
                 if self.DEBUG:
-                    print '    [Location] I am at %s ' % pos
+                    print '    %s[Location] I am at %s ' % (msg_prefix, pos)
             else:
                 msg_content['type'] = 0
                 msg_content['data'] = content.replace(u'\u2005', '')
                 if self.DEBUG:
-                    print '    [Text] %s' % msg_content['data']
+                    print '    %s[Text] %s' % (msg_prefix, msg_content['data'])
         elif mtype == 3:
             msg_content['type'] = 3
             msg_content['data'] = self.get_msg_img_url(msg_id)
             if self.DEBUG:
                 image = self.get_msg_img(msg_id)
-                print '    [Image] %s' % image
+                print '    %s[Image] %s' % (msg_prefix, image)
         elif mtype == 34:
             msg_content['type'] = 4
             msg_content['data'] = self.get_voice_url(msg_id)
             if self.DEBUG:
                 voice = self.get_voice(msg_id)
-                print '    [Voice] %s' % voice
+                print '    %s[Voice] %s' % (msg_prefix, voice)
         elif mtype == 42:
             msg_content['type'] = 5
             info = msg['RecommendInfo']
@@ -286,7 +288,7 @@ class WXBot:
                                    'city': info['City'],
                                    'gender': ['unknown', 'male', 'female'][info['Sex']]}
             if self.DEBUG:
-                print '    [Recommend]'
+                print '    %s[Recommend]' % msg_prefix
                 print '    -----------------------------'
                 print '    | NickName: %s' % info['NickName']
                 print '    | Alias: %s' % info['Alias']
@@ -297,7 +299,7 @@ class WXBot:
             msg_content['type'] = 6
             msg_content['data'] = self.search_content('cdnurl', content)
             if self.DEBUG:
-                print '    [Animation] %s' % msg_content['data']
+                print '    %s[Animation] %s' % (msg_prefix, msg_content['data'])
         elif mtype == 49:
             msg_content['type'] = 7
             app_msg_type = ''
@@ -315,7 +317,7 @@ class WXBot:
                                    'url': msg['Url'],
                                    'from': self.search_content('appname', content, 'xml')}
             if self.DEBUG:
-                print '    [Share] %s' % app_msg_type
+                print '    %s[Share] %s' % (msg_prefix, app_msg_type)
                 print '    --------------------------'
                 print '    | title: %s' % msg['FileName']
                 print '    | desc: %s' % self.search_content('des', content, 'xml')
@@ -327,22 +329,22 @@ class WXBot:
             msg_content['type'] = 8
             msg_content['data'] = content
             if self.DEBUG:
-                print '    [Video] Please check on mobiles'
+                print '    %s[Video] Please check on mobiles' % msg_prefix
         elif mtype == 53:
             msg_content['type'] = 9
             msg_content['data'] = content
             if self.DEBUG:
-                print '    [Video Call]'
+                print '    %s[Video Call]' % msg_prefix
         elif mtype == 10002:
             msg_content['type'] = 10
             msg_content['data'] = content
             if self.DEBUG:
-                print '    [Redraw]'
+                print '    %s[Redraw]' % msg_prefix
         else:
             msg_content['type'] = 99
             msg_content['data'] = content
             if self.DEBUG:
-                print '    [Unknown]'
+                print '    %s[Unknown]' % msg_prefix
         return msg_content
 
     def handle_msg(self, r):
