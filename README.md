@@ -2,6 +2,14 @@
 
 Python包装Web微信实现的微信机器人框架。可以很容易地实现微信机器人。
 
+Web微信协议参考资料：
+
+[挖掘微信Web版通信的全过程](http://www.tanhao.me/talk/1466.html/)
+
+[微信协议简单调研笔记](http://www.blogjava.net/yongboy/archive/2015/11/05/410636.html)
+
+[qwx: WeChat Qt frontend 微信Qt前端](https://github.com/xiangzhai/qwx)
+
 ## 环境与依赖
 
 目前只能运行于Python 2环境 。

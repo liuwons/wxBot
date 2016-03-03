@@ -9,9 +9,12 @@ import urllib
 import time
 import re
 import random
+from requests.exceptions import *
 
 
 class WXBot:
+    """WXBot, a framework to process WeChat messages"""
+
     def __init__(self):
         self.DEBUG = False
         self.uuid = ''
@@ -27,20 +30,19 @@ class WXBot:
         self.sync_key = []
         self.user = {}
         self.account_info = {}
-        self.member_list = []   # all kind of accounts: contacts, public accounts, groups, special accounts
+        self.member_list = []  # all kind of accounts: contacts, public accounts, groups, special accounts
         self.contact_list = []  # contact list
-        self.public_list = []   # public account list
-        self.group_list = []    # group chat list
+        self.public_list = []  # public account list
+        self.group_list = []  # group chat list
         self.special_list = []  # special list account
         self.group_members = {}  # members of all groups
         self.sync_host = ''
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
-
         self.conf = {'qr': 'png'}
 
-    # Get information of all contacts of current account.
     def get_contact(self):
+        """Get information of all contacts of current account."""
         url = self.base_uri + '/webwxgetcontact?pass_ticket=%s&skey=%s&r=%s' \
                               % (self.pass_ticket, self.skey, int(time.time()))
         r = self.session.post(url, data='{}')
@@ -104,13 +106,13 @@ class WXBot:
                 f.write(json.dumps(self.account_info))
         return True
 
-    # Get information of accounts in all groups at once.
     def batch_get_group_members(self):
+        """Get information of accounts in all groups at once."""
         url = self.base_uri + '/webwxbatchgetcontact?type=ex&r=%s&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
         params = {
             'BaseRequest': self.base_request,
             "Count": len(self.group_list),
-            "List": [{"UserName": group['UserName'], "EncryChatRoomId":""} for group in self.group_list]
+            "List": [{"UserName": group['UserName'], "EncryChatRoomId": ""} for group in self.group_list]
         }
         r = self.session.post(url, data=json.dumps(params))
         r.encoding = 'utf-8'
@@ -152,8 +154,12 @@ class WXBot:
             return name['nickname']
         return 'unknown'
 
-    # Get the relationship of a account and current user.
     def get_user_type(self, wx_user_id):
+        """
+        Get the relationship of a account and current user.
+        :param wx_user_id:
+        :return: The type of the account.
+        """
         for account in self.contact_list:
             if wx_user_id == account['UserName']:
                 return 'contact'
@@ -190,32 +196,38 @@ class WXBot:
                 return True
         return False
 
-    '''
-    msg:
-        msg_id
-        msg_type_id
-        user
-        content
-    '''
     def handle_msg_all(self, msg):
+        """
+        The function to process all WeChat messages, please override this function.
+        msg:
+            msg_id  ->  id of the received WeChat message
+            msg_type_id  ->  the type of the message
+            user  ->  the account that the message if sent from
+            content  ->  content of the message
+        :param msg: The received message.
+        :return: None
+        """
         pass
 
-    '''
-    content_type_id:
-        0 -> Text
-        1 -> Location
-        3 -> Image
-        4 -> Voice
-        5 -> Recommend
-        6 -> Animation
-        7 -> Share
-        8 -> Video
-        9 -> VideoCall
-        10 -> Redraw
-        11 -> Empty
-        99 -> Unknown
-    '''
     def extract_msg_content(self, msg_type_id, msg):
+        """
+        content_type_id:
+            0 -> Text
+            1 -> Location
+            3 -> Image
+            4 -> Voice
+            5 -> Recommend
+            6 -> Animation
+            7 -> Share
+            8 -> Video
+            9 -> VideoCall
+            10 -> Redraw
+            11 -> Empty
+            99 -> Unknown
+        :param msg_type_id: The type of the received message.
+        :param msg: The received message.
+        :return: The extracted content of the message.
+        """
         mtype = msg['MsgType']
         content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
         msg_id = msg['MsgId']
@@ -234,7 +246,7 @@ class WXBot:
             msg_content['user'] = {'id': uid, 'name': self.get_prefer_name(self.get_account_name(uid))}
             if self.DEBUG:
                 print msg_content['user']['name']
-        else:                   # Self, Contact, Special, Public, Unknown
+        else:  # Self, Contact, Special, Public, Unknown
             pass
 
         if mtype == 1:
@@ -333,18 +345,21 @@ class WXBot:
                 print '    [Unknown]'
         return msg_content
 
-    '''
-    msg_type_id:
-        0 -> Init
-        1 -> Self
-        2 -> FileHelper
-        3 -> Group
-        4 -> Contact
-        5 -> Public
-        6 -> Special
-        99 -> Unknown
-    '''
     def handle_msg(self, r):
+        """
+        The inner function that processes raw WeChat messages.
+        msg_type_id:
+            0 -> Init
+            1 -> Self
+            2 -> FileHelper
+            3 -> Group
+            4 -> Contact
+            5 -> Public
+            6 -> Special
+            99 -> Unknown
+        :param r: The raw data of the messages.
+        :return: None
+        """
         for msg in r['AddMsgList']:
             msg_type_id = 99
             user = {'id': msg['FromUserName']}
@@ -379,16 +394,25 @@ class WXBot:
             self.handle_msg_all(message)
 
     def schedule(self):
+        """
+        The function to do schedule works.
+        This function will be called a lot of times.
+        Please override this if needed.
+        :return: None
+        """
         pass
 
     def proc_msg(self):
         self.test_sync_check()
         while True:
+            check_time = time.time()
             [retcode, selector] = self.sync_check()
-            if retcode == '1100':  # User have login on mobile
-                pass
+            if retcode == '1100':  # logout from mobile
+                break
+            elif retcode == '1101':  # login web WeChat from other devide
+                break
             elif retcode == '0':
-                if selector == '2':
+                if selector == '2':  # new message
                     r = self.sync()
                     if r is not None:
                         self.handle_msg(r)
@@ -396,13 +420,18 @@ class WXBot:
                     r = self.sync()
                     if r is not None:
                         self.handle_msg(r)
-                elif selector == '0':
-                    time.sleep(1)
+                elif selector == '0':  # nothing
+                    pass
+                else:
+                    pass
             self.schedule()
+            check_time = time.time() - check_time
+            if check_time < 0.5:
+                time.sleep(0.5 - check_time)
 
     def send_msg_by_uid(self, word, dst='filehelper'):
         url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % self.pass_ticket
-        msg_id = str(int(time.time()*1000)) + str(random.random())[:5].replace('.', '')
+        msg_id = str(int(time.time() * 1000)) + str(random.random())[:5].replace('.', '')
         if type(word) == 'str':
             word = word.decode('utf-8')
         params = {
@@ -418,7 +447,10 @@ class WXBot:
         }
         headers = {'content-type': 'application/json; charset=UTF-8'}
         data = json.dumps(params, ensure_ascii=False).encode('utf8')
-        r = self.session.post(url, data=data, headers=headers)
+        try:
+            r = self.session.post(url, data=data, headers=headers)
+        except (ConnectionError, ReadTimeout):
+            return False
         dic = r.json()
         return dic['BaseResponse']['Ret'] == 0
 
@@ -430,7 +462,7 @@ class WXBot:
                     result = True
                     for line in f.readlines():
                         line = line.replace('\n', '')
-                        print '-> '+name+': '+line
+                        print '-> ' + name + ': ' + line
                         if self.send_msg_by_uid(line, uid):
                             pass
                         else:
@@ -450,7 +482,7 @@ class WXBot:
     @staticmethod
     def search_content(key, content, fmat='attr'):
         if fmat == 'attr':
-            pm = re.search(key+'\s?=\s?"([^"<]+)"', content)
+            pm = re.search(key + '\s?=\s?"([^"<]+)"', content)
             if pm:
                 return pm.group(1)
         elif fmat == 'xml':
@@ -488,7 +520,7 @@ class WXBot:
             'appid': 'wx782c26e4c19acffb',
             'fun': 'new',
             'lang': 'zh_CN',
-            '_': int(time.time())*1000 + random.randint(1, 999),
+            '_': int(time.time()) * 1000 + random.randint(1, 999),
         }
         r = self.session.get(url, params=params)
         r.encoding = 'utf-8'
@@ -558,7 +590,7 @@ class WXBot:
             'Sid': self.sid,
             'Skey': self.skey,
             'DeviceID': self.device_id,
-            }
+        }
         return True
 
     def init(self):
@@ -609,7 +641,10 @@ class WXBot:
             '_': int(time.time()),
         }
         url = 'https://' + self.sync_host + '.weixin.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
-        r = self.session.get(url)
+        try:
+            r = self.session.get(url)
+        except (ConnectionError, ReadTimeout):
+            return [-1, -1]
         r.encoding = 'utf-8'
         data = r.text
         pm = re.search(r'window.synccheck=\{retcode:"(\d+)",selector:"(\d+)"\}', data)
@@ -625,7 +660,10 @@ class WXBot:
             'SyncKey': self.sync_key,
             'rr': ~int(time.time())
         }
-        r = self.session.post(url, data=json.dumps(params))
+        try:
+            r = self.session.post(url, data=json.dumps(params))
+        except (ConnectionError, ReadTimeout):
+            return None
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
         if dic['BaseResponse']['Ret'] == 0:
@@ -638,7 +676,7 @@ class WXBot:
         url = self.base_uri + '/webwxgeticon?username=%s&skey=%s' % (uid, self.skey)
         r = self.session.get(url)
         data = r.content
-        fn = 'img_'+uid+'.jpg'
+        fn = 'img_' + uid + '.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
         return fn
@@ -647,7 +685,7 @@ class WXBot:
         url = self.base_uri + '/webwxgetheadimg?username=%s&skey=%s' % (uid, self.skey)
         r = self.session.get(url)
         data = r.content
-        fn = 'img_'+uid+'.jpg'
+        fn = 'img_' + uid + '.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
         return fn
@@ -659,7 +697,7 @@ class WXBot:
         url = self.base_uri + '/webwxgetmsgimg?MsgID=%s&skey=%s' % (msgid, self.skey)
         r = self.session.get(url)
         data = r.content
-        fn = 'img_'+msgid+'.jpg'
+        fn = 'img_' + msgid + '.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
         return fn
@@ -671,7 +709,7 @@ class WXBot:
         url = self.base_uri + '/webwxgetvoice?msgid=%s&skey=%s' % (msgid, self.skey)
         r = self.session.get(url)
         data = r.content
-        fn = 'voice_'+msgid+'.mp3'
+        fn = 'voice_' + msgid + '.mp3'
         with open(fn, 'wb') as f:
             f.write(data)
         return fn
