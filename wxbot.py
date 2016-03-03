@@ -26,125 +26,20 @@ class WXBot:
         self.sync_key_str = ''
         self.sync_key = []
         self.user = {}
-        self.member_list = []
+        self.account_info = {}
+        self.member_list = []   # all kind of accounts: contacts, public accounts, groups, special accounts
         self.contact_list = []  # contact list
         self.public_list = []   # public account list
         self.group_list = []    # group chat list
         self.special_list = []  # special list account
+        self.group_members = {}  # members of all groups
         self.sync_host = ''
         self.session = requests.Session()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
 
         self.conf = {'qr': 'png'}
 
-    def get_uuid(self):
-        url = 'https://login.weixin.qq.com/jslogin'
-        params = {
-            'appid': 'wx782c26e4c19acffb',
-            'fun': 'new',
-            'lang': 'zh_CN',
-            '_': int(time.time())*1000 + random.randint(1, 999),
-        }
-        r = self.session.get(url, params=params)
-        r.encoding = 'utf-8'
-        data = r.text
-        regx = r'window.QRLogin.code = (\d+); window.QRLogin.uuid = "(\S+?)"'
-        pm = re.search(regx, data)
-        if pm:
-            code = pm.group(1)
-            self.uuid = pm.group(2)
-            return code == '200'
-        return False
-
-    def gen_qr_code(self, qr_file_path):
-        string = 'https://login.weixin.qq.com/l/' + self.uuid
-        qr = pyqrcode.create(string)
-        if self.conf['qr'] == 'png':
-            qr.png(qr_file_path)
-        elif self.conf['qr'] == 'tty':
-            print(qr.terminal(quiet_zone=1))
-            
-    def wait4login(self, tip):
-        time.sleep(tip)
-        url = 'https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?tip=%s&uuid=%s&_=%s' \
-              % (tip, self.uuid, int(time.time()))
-        r = self.session.get(url)
-        r.encoding = 'utf-8'
-        data = r.text
-        param = re.search(r'window.code=(\d+);', data)
-        code = param.group(1)
-
-        if code == '201':
-            return True
-        elif code == '200':
-            param = re.search(r'window.redirect_uri="(\S+?)";', data)
-            redirect_uri = param.group(1) + '&fun=new'
-            self.redirect_uri = redirect_uri
-            self.base_uri = redirect_uri[:redirect_uri.rfind('/')]
-            return True
-        elif code == '408':
-            print '[ERROR] WeChat login timeout .'
-        else:
-            print '[ERROR] WeChat login exception .'
-        return False
-
-    def login(self):
-        r = self.session.get(self.redirect_uri)
-        r.encoding = 'utf-8'
-        data = r.text
-        doc = xml.dom.minidom.parseString(data)
-        root = doc.documentElement
-
-        for node in root.childNodes:
-            if node.nodeName == 'skey':
-                self.skey = node.childNodes[0].data
-            elif node.nodeName == 'wxsid':
-                self.sid = node.childNodes[0].data
-            elif node.nodeName == 'wxuin':
-                self.uin = node.childNodes[0].data
-            elif node.nodeName == 'pass_ticket':
-                self.pass_ticket = node.childNodes[0].data
-
-        if '' in (self.skey, self.sid, self.uin, self.pass_ticket):
-            return False
-
-        self.base_request = {
-            'Uin': self.uin,
-            'Sid': self.sid,
-            'Skey': self.skey,
-            'DeviceID': self.device_id,
-            }
-        return True
-
-    def init(self):
-        url = self.base_uri + '/webwxinit?r=%i&lang=en_US&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
-        params = {
-            'BaseRequest': self.base_request
-        }
-        r = self.session.post(url, data=json.dumps(params))
-        r.encoding = 'utf-8'
-        dic = json.loads(r.text)
-        self.sync_key = dic['SyncKey']
-        self.user = dic['User']
-        self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
-                                      for keyVal in self.sync_key['List']])
-        return dic['BaseResponse']['Ret'] == 0
-
-    def status_notify(self):
-        url = self.base_uri + '/webwxstatusnotify?lang=zh_CN&pass_ticket=%s' % self.pass_ticket
-        self.base_request['Uin'] = int(self.base_request['Uin'])
-        params = {
-            'BaseRequest': self.base_request,
-            "Code": 3,
-            "FromUserName": self.user['UserName'],
-            "ToUserName": self.user['UserName'],
-            "ClientMsgId": int(time.time())
-        }
-        r = self.session.post(url, data=json.dumps(params))
-        r.encoding = 'utf-8'
-        dic = json.loads(r.text)
-        return dic['BaseResponse']['Ret'] == 0
-
+    # Get information of all contacts of current account.
     def get_contact(self):
         url = self.base_uri + '/webwxgetcontact?pass_ticket=%s&skey=%s&r=%s' \
                               % (self.pass_ticket, self.skey, int(time.time()))
@@ -172,14 +67,25 @@ class WXBot:
         for contact in self.member_list:
             if contact['VerifyFlag'] & 8 != 0:  # public account
                 self.public_list.append(contact)
+                self.account_info[contact['UserName']] = {'type': 'public', 'info': contact}
             elif contact['UserName'] in special_users:  # special account
                 self.special_list.append(contact)
+                self.account_info[contact['UserName']] = {'type': 'special', 'info': contact}
             elif contact['UserName'].find('@@') != -1:  # group
                 self.group_list.append(contact)
+                self.account_info[contact['UserName']] = {'type': 'group', 'info': contact}
             elif contact['UserName'] == self.user['UserName']:  # self
+                self.account_info[contact['UserName']] = {'type': 'self', 'info': contact}
                 pass
             else:
                 self.contact_list.append(contact)
+
+        self.group_members = self.batch_get_group_members()
+
+        for group in self.group_members:
+            for member in self.group_members[group]:
+                if member['UserName'] not in self.account_info:
+                    self.account_info[member['UserName']] = {'type': 'group_member', 'info': member, 'group': group}
 
         if self.DEBUG:
             with open('contact_list.json', 'w') as f:
@@ -192,122 +98,61 @@ class WXBot:
                 f.write(json.dumps(self.public_list))
             with open('member_list.json', 'w') as f:
                 f.write(json.dumps(self.member_list))
-
+            with open('group_users.json', 'w') as f:
+                f.write(json.dumps(self.group_members))
+            with open('account_info.json', 'w') as f:
+                f.write(json.dumps(self.account_info))
         return True
 
-    def batch_get_contact(self):
+    # Get information of accounts in all groups at once.
+    def batch_get_group_members(self):
         url = self.base_uri + '/webwxbatchgetcontact?type=ex&r=%s&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
         params = {
             'BaseRequest': self.base_request,
             "Count": len(self.group_list),
-            "List": [{"UserName": g['UserName'], "EncryChatRoomId":""} for g in self.group_list]
-        }
-        r = self.session.post(url, data=params)
-        r.encoding = 'utf-8'
-        dic = json.loads(r.text)
-        return dic
-
-    def test_sync_check(self):
-        for host in ['webpush', 'webpush2']:
-            self.sync_host = host
-            retcode = self.sync_check()[0]
-            if retcode == '0':
-                return True
-        return False
-
-    def sync_check(self):
-        params = {
-            'r': int(time.time()),
-            'sid': self.sid,
-            'uin': self.uin,
-            'skey': self.skey,
-            'deviceid': self.device_id,
-            'synckey': self.sync_key_str,
-            '_': int(time.time()),
-        }
-        url = 'https://' + self.sync_host + '.weixin.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
-        r = self.session.get(url)
-        r.encoding = 'utf-8'
-        data = r.text
-        pm = re.search(r'window.synccheck=\{retcode:"(\d+)",selector:"(\d+)"\}', data)
-        retcode = pm.group(1)
-        selector = pm.group(2)
-        return [retcode, selector]
-
-    def sync(self):
-        url = self.base_uri + '/webwxsync?sid=%s&skey=%s&lang=en_US&pass_ticket=%s' \
-                              % (self.sid, self.skey, self.pass_ticket)
-        params = {
-            'BaseRequest': self.base_request,
-            'SyncKey': self.sync_key,
-            'rr': ~int(time.time())
+            "List": [{"UserName": group['UserName'], "EncryChatRoomId":""} for group in self.group_list]
         }
         r = self.session.post(url, data=json.dumps(params))
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
-        if dic['BaseResponse']['Ret'] == 0:
-            self.sync_key = dic['SyncKey']
-            self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
-                                          for keyVal in self.sync_key['List']])
-        return dic
+        group_members = {}
+        for group in dic['ContactList']:
+            gid = group['UserName']
+            members = group['MemberList']
+            group_members[gid] = members
+        return group_members
 
-    def get_icon(self, uid):
-        url = self.base_uri + '/webwxgeticon?username=%s&skey=%s' % (uid, self.skey)
-        r = self.session.get(url)
-        data = r.content
-        fn = 'img_'+uid+'.jpg'
-        with open(fn, 'wb') as f:
-            f.write(data)
-        return fn
+    def get_account_info(self, uid):
+        if uid in self.account_info:
+            return self.account_info[uid]
+        else:
+            return None
 
-    def get_head_img(self, uid):
-        url = self.base_uri + '/webwxgetheadimg?username=%s&skey=%s' % (uid, self.skey)
-        r = self.session.get(url)
-        data = r.content
-        fn = 'img_'+uid+'.jpg'
-        with open(fn, 'wb') as f:
-            f.write(data)
-        return fn
-
-    def get_msg_img_url(self, msgid):
-        return self.base_uri + '/webwxgetmsgimg?MsgID=%s&skey=%s' % (msgid, self.skey)
-
-    def get_msg_img(self, msgid):
-        url = self.base_uri + '/webwxgetmsgimg?MsgID=%s&skey=%s' % (msgid, self.skey)
-        r = self.session.get(url)
-        data = r.content
-        fn = 'img_'+msgid+'.jpg'
-        with open(fn, 'wb') as f:
-            f.write(data)
-        return fn
-
-    def get_voice_url(self, msgid):
-        return self.base_uri + '/webwxgetvoice?msgid=%s&skey=%s' % (msgid, self.skey)
-
-    def get_voice(self, msgid):
-        url = self.base_uri + '/webwxgetvoice?msgid=%s&skey=%s' % (msgid, self.skey)
-        r = self.session.get(url)
-        data = r.content
-        fn = 'voice_'+msgid+'.mp3'
-        with open(fn, 'wb') as f:
-            f.write(data)
-        return fn
-
-    # Get the NickName or RemarkName of an user by user id
-    def get_user_remark_name(self, uid):
-        name = 'unknown group' if uid[:2] == '@@' else 'stranger'
-        for member in self.member_list:
-            if member['UserName'] == uid:
-                name = member['RemarkName'] if member['RemarkName'] else member['NickName']
+    def get_account_name(self, uid):
+        info = self.get_account_info(uid)
+        if info is None:
+            return 'unknown'
+        info = info['info']
+        name = {}
+        if 'RemarkName' in info and info['RemarkName']:
+            name['remark_name'] = info['RemarkName']
+        if 'NickName' in info and info['NickName']:
+            name['nickname'] = info['NickName']
+        if 'DisplayName' in info and info['DisplayName']:
+            name['display_name'] = info['DisplayName']
         return name
 
-    # Get user id of an user
-    def get_user_id(self, name):
-        for member in self.member_list:
-            if name == member['RemarkName'] or name == member['NickName'] or name == member['UserName']:
-                return member['UserName']
-        return None
+    @staticmethod
+    def get_prefer_name(name):
+        if 'remark_name' in name:
+            return name['remark_name']
+        if 'display_name' in name:
+            return name['display_name']
+        if 'nickname' in name:
+            return name['nickname']
+        return 'unknown'
 
+    # Get the relationship of a account and current user.
     def get_user_type(self, wx_user_id):
         for account in self.contact_list:
             if wx_user_id == account['UserName']:
@@ -321,6 +166,10 @@ class WXBot:
         for account in self.group_list:
             if wx_user_id == account['UserName']:
                 return 'group'
+        for group in self.group_members:
+            for member in self.group_members[group]:
+                if member['UserName'] == wx_user_id:
+                    return 'group_member'
         return 'unknown'
 
     def is_contact(self, uid):
@@ -343,10 +192,10 @@ class WXBot:
 
     '''
     msg:
+        msg_id
+        msg_type_id
         user
-        type
-        data
-        detail
+        content
     '''
     def handle_msg_all(self, msg):
         pass
@@ -382,7 +231,7 @@ class WXBot:
             content = content[sp:]
             content = content.replace('<br/>', '')
             uid = uid[:-1]
-            msg_content['user'] = {'id': uid, 'name': self.get_user_remark_name(uid)}
+            msg_content['user'] = {'id': uid, 'name': self.get_prefer_name(self.get_account_name(uid))}
             if self.DEBUG:
                 print msg_content['user']['name']
         else:                   # Self, Contact, Special, Public, Unknown
@@ -509,20 +358,17 @@ class WXBot:
                 user['name'] = 'file_helper'
             elif msg['FromUserName'][:2] == '@@':  # Group
                 msg_type_id = 3
-                user['name'] = self.get_user_remark_name(user['id'])
-                if self.DEBUG:
-                    print '[From] %s' % user['name']
+                user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
             elif self.is_contact(msg['FromUserName']):  # Contact
                 msg_type_id = 4
-                user['name'] = self.get_user_remark_name(user['id'])
+                user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
             elif self.is_public(msg['FromUserName']):  # Public
                 msg_type_id = 5
-                user['name'] = self.get_user_remark_name(user['id'])
+                user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
             elif self.is_special(msg['FromUserName']):  # Special
                 msg_type_id = 6
-                user['name'] = self.get_user_remark_name(user['id'])
-            else:
-                user['name'] = 'unknown'  # Unknown
+                user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
+
             if self.DEBUG and msg_type_id != 0:
                 print '[MSG] %s:' % user['name']
             content = self.extract_msg_content(msg_type_id, msg)
@@ -635,3 +481,197 @@ class WXBot:
         print '[INFO] Get %d contacts' % len(self.contact_list)
         print '[INFO] Start to process messages .'
         self.proc_msg()
+
+    def get_uuid(self):
+        url = 'https://login.weixin.qq.com/jslogin'
+        params = {
+            'appid': 'wx782c26e4c19acffb',
+            'fun': 'new',
+            'lang': 'zh_CN',
+            '_': int(time.time())*1000 + random.randint(1, 999),
+        }
+        r = self.session.get(url, params=params)
+        r.encoding = 'utf-8'
+        data = r.text
+        regx = r'window.QRLogin.code = (\d+); window.QRLogin.uuid = "(\S+?)"'
+        pm = re.search(regx, data)
+        if pm:
+            code = pm.group(1)
+            self.uuid = pm.group(2)
+            return code == '200'
+        return False
+
+    def gen_qr_code(self, qr_file_path):
+        string = 'https://login.weixin.qq.com/l/' + self.uuid
+        qr = pyqrcode.create(string)
+        if self.conf['qr'] == 'png':
+            qr.png(qr_file_path)
+        elif self.conf['qr'] == 'tty':
+            print(qr.terminal(quiet_zone=1))
+
+    def wait4login(self, tip):
+        time.sleep(tip)
+        url = 'https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?tip=%s&uuid=%s&_=%s' \
+              % (tip, self.uuid, int(time.time()))
+        r = self.session.get(url)
+        r.encoding = 'utf-8'
+        data = r.text
+        param = re.search(r'window.code=(\d+);', data)
+        code = param.group(1)
+
+        if code == '201':
+            return True
+        elif code == '200':
+            param = re.search(r'window.redirect_uri="(\S+?)";', data)
+            redirect_uri = param.group(1) + '&fun=new'
+            self.redirect_uri = redirect_uri
+            self.base_uri = redirect_uri[:redirect_uri.rfind('/')]
+            return True
+        elif code == '408':
+            print '[ERROR] WeChat login timeout .'
+        else:
+            print '[ERROR] WeChat login exception .'
+        return False
+
+    def login(self):
+        r = self.session.get(self.redirect_uri)
+        r.encoding = 'utf-8'
+        data = r.text
+        doc = xml.dom.minidom.parseString(data)
+        root = doc.documentElement
+
+        for node in root.childNodes:
+            if node.nodeName == 'skey':
+                self.skey = node.childNodes[0].data
+            elif node.nodeName == 'wxsid':
+                self.sid = node.childNodes[0].data
+            elif node.nodeName == 'wxuin':
+                self.uin = node.childNodes[0].data
+            elif node.nodeName == 'pass_ticket':
+                self.pass_ticket = node.childNodes[0].data
+
+        if '' in (self.skey, self.sid, self.uin, self.pass_ticket):
+            return False
+
+        self.base_request = {
+            'Uin': self.uin,
+            'Sid': self.sid,
+            'Skey': self.skey,
+            'DeviceID': self.device_id,
+            }
+        return True
+
+    def init(self):
+        url = self.base_uri + '/webwxinit?r=%i&lang=en_US&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
+        params = {
+            'BaseRequest': self.base_request
+        }
+        r = self.session.post(url, data=json.dumps(params))
+        r.encoding = 'utf-8'
+        dic = json.loads(r.text)
+        self.sync_key = dic['SyncKey']
+        self.user = dic['User']
+        self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
+                                      for keyVal in self.sync_key['List']])
+        return dic['BaseResponse']['Ret'] == 0
+
+    def status_notify(self):
+        url = self.base_uri + '/webwxstatusnotify?lang=zh_CN&pass_ticket=%s' % self.pass_ticket
+        self.base_request['Uin'] = int(self.base_request['Uin'])
+        params = {
+            'BaseRequest': self.base_request,
+            "Code": 3,
+            "FromUserName": self.user['UserName'],
+            "ToUserName": self.user['UserName'],
+            "ClientMsgId": int(time.time())
+        }
+        r = self.session.post(url, data=json.dumps(params))
+        r.encoding = 'utf-8'
+        dic = json.loads(r.text)
+        return dic['BaseResponse']['Ret'] == 0
+
+    def test_sync_check(self):
+        for host in ['webpush', 'webpush2']:
+            self.sync_host = host
+            retcode = self.sync_check()[0]
+            if retcode == '0':
+                return True
+        return False
+
+    def sync_check(self):
+        params = {
+            'r': int(time.time()),
+            'sid': self.sid,
+            'uin': self.uin,
+            'skey': self.skey,
+            'deviceid': self.device_id,
+            'synckey': self.sync_key_str,
+            '_': int(time.time()),
+        }
+        url = 'https://' + self.sync_host + '.weixin.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
+        r = self.session.get(url)
+        r.encoding = 'utf-8'
+        data = r.text
+        pm = re.search(r'window.synccheck=\{retcode:"(\d+)",selector:"(\d+)"\}', data)
+        retcode = pm.group(1)
+        selector = pm.group(2)
+        return [retcode, selector]
+
+    def sync(self):
+        url = self.base_uri + '/webwxsync?sid=%s&skey=%s&lang=en_US&pass_ticket=%s' \
+                              % (self.sid, self.skey, self.pass_ticket)
+        params = {
+            'BaseRequest': self.base_request,
+            'SyncKey': self.sync_key,
+            'rr': ~int(time.time())
+        }
+        r = self.session.post(url, data=json.dumps(params))
+        r.encoding = 'utf-8'
+        dic = json.loads(r.text)
+        if dic['BaseResponse']['Ret'] == 0:
+            self.sync_key = dic['SyncKey']
+            self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
+                                          for keyVal in self.sync_key['List']])
+        return dic
+
+    def get_icon(self, uid):
+        url = self.base_uri + '/webwxgeticon?username=%s&skey=%s' % (uid, self.skey)
+        r = self.session.get(url)
+        data = r.content
+        fn = 'img_'+uid+'.jpg'
+        with open(fn, 'wb') as f:
+            f.write(data)
+        return fn
+
+    def get_head_img(self, uid):
+        url = self.base_uri + '/webwxgetheadimg?username=%s&skey=%s' % (uid, self.skey)
+        r = self.session.get(url)
+        data = r.content
+        fn = 'img_'+uid+'.jpg'
+        with open(fn, 'wb') as f:
+            f.write(data)
+        return fn
+
+    def get_msg_img_url(self, msgid):
+        return self.base_uri + '/webwxgetmsgimg?MsgID=%s&skey=%s' % (msgid, self.skey)
+
+    def get_msg_img(self, msgid):
+        url = self.base_uri + '/webwxgetmsgimg?MsgID=%s&skey=%s' % (msgid, self.skey)
+        r = self.session.get(url)
+        data = r.content
+        fn = 'img_'+msgid+'.jpg'
+        with open(fn, 'wb') as f:
+            f.write(data)
+        return fn
+
+    def get_voice_url(self, msgid):
+        return self.base_uri + '/webwxgetvoice?msgid=%s&skey=%s' % (msgid, self.skey)
+
+    def get_voice(self, msgid):
+        url = self.base_uri + '/webwxgetvoice?msgid=%s&skey=%s' % (msgid, self.skey)
+        r = self.session.get(url)
+        data = r.content
+        fn = 'voice_'+msgid+'.mp3'
+        with open(fn, 'wb') as f:
+            f.write(data)
+        return fn

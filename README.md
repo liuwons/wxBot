@@ -57,8 +57,6 @@ python test.py
 
 程序运行之后，会在当前目录下生成二维码图片文件 qr.png ，用微信扫描此二维码并按操作指示确认登录网页微信。
 
-![1](img/1.png)
-
 如果运行在Linux下，还可以通过设置WXBot对象的conf['qr']为'tty'的方式直接在终端打印二维码(此方法只能在Linux终端下使用)，效果如下：
 
 ![login_on_ubuntu](img/login_on_ubuntu.png)
@@ -81,7 +79,7 @@ handle_msg_all函数的参数msg是代表一条消息的字典。字段的内容
 | msg_type_id | 整数，消息类型，具体解释可以查看消息类型表 |
 | msg_id | 字符串，消息id |
 | content | 字典，消息内容，具体含有的字段请参考消息类型表，一般含有type(数据类型)与data(数据内容)字段，type与data的对应关系可以参考数据类型表 |
-| user | 字典，消息来源，字典包含name(发送者名称)字段与id(发送者id)字段，都是字符串  |
+| user | 字典，消息来源，字典包含name(发送者名称,如果是群则为群名称，如果为微信号，有备注则为备注名，否则为微信号或者群昵称)字段与id(发送者id)字段，都是字符串  |
 
 
 消息类型表：
@@ -136,7 +134,7 @@ WXBot对象还含有一些可以利用的方法：
 | get_head_img(id) | 获取用户头像并保存到本地文件 img_[id].jpg，id为用户id(Web微信数据) |
 | get_msg_img(msgid) | 获取图像消息并保存到本地文件 img_[msgid].jpg, msgid为消息id(Web微信数据) |
 | get_voice(msgid) | 获取语音消息并保存到本地文件 voice_[msgid].mp3, msgid为消息id(Web微信数据) |
-| get_user_remark_name(uid) | 获取好友的备注名，没有备注名则获取好友微信号， uid为好友的用户id(Web微信数据) |
+| get_account_name(uid) | 获取微信id对应的名称，返回一个可能包含remark_name(备注名),nickname(昵称), display_name(群名称)的字典|
 | send_msg_by_uid(word, dst) | 向好友发送消息，word为消息字符串，dst为好友用户id(Web微信数据) |
 | send_msg(name, word, isfile) | 向好友发送消息，name为好友的备注名或者好友微信号，isfile为False时word为消息，isfile为True时word为文件路径(此时向好友发送文件里的每一行) |
 | is_contact(uid) | 判断id为uid的账号是否是本帐号的好友，返回True(是)或False(不是) |
