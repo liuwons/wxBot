@@ -410,6 +410,9 @@ class WXBot:
             elif self.is_special(msg['FromUserName']):  # Special
                 msg_type_id = 6
                 user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
+            else:
+                msg_type_id = 99
+                user['name'] = 'unknown'
 
             if self.DEBUG and msg_type_id != 0:
                 print '[MSG] %s:' % user['name']
