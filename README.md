@@ -200,9 +200,11 @@ python test.py
 
 
 ***bot.py*** 的运行方法：
+
+- 要接入图灵机器人API时：
+
  1. 在[图灵机器人官网](http://www.tuling123.com/)注册账号，申请图灵key: [图灵key申请地址](http://www.tuling123.com/html/doc/apikey.html)
  2. 在 ***bot.py*** 文件所在目录下新建 ***conf.ini*** 文件，内容为:(key字段内容为申请到的图灵key)
-
  ```txt
  [main]
  key=1d2678900f734aa0a23734ace8aec5b1
@@ -211,3 +213,10 @@ python test.py
  ```python
  python bot.py
  ```
+
+- 不接入图灵机器人API时(此时机器人对联系人消息以及群里@自己的消息统一回复 *知道了* 。)：
+
+  1. 运行 ***bot.py***
+  ```python
+  python bot.py
+  ```
