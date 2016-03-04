@@ -124,6 +124,28 @@ class WXBot:
             group_members[gid] = members
         return group_members
 
+    def get_group_member_name(self, gid, uid):
+        """
+        Get name of a member in a group.
+        :param gid: group id
+        :param uid: group member id
+        :return: names like {"display_name": "test_user", "nickname": "test", "remark_name": "for_test" }
+        """
+        if gid not in self.group_members:
+            return None
+        group = self.group_members[gid]
+        for member in group:
+            if member['UserName'] == uid:
+                names = {}
+                if 'RemarkName' in member:
+                    names['remark_name'] = member['RemarkName']
+                if 'NickName' in member:
+                    names['nickname'] = member['NickName']
+                if 'DisplayName' in member:
+                    names['display_name'] = member['DisplayName']
+                return names
+        return None
+
     def get_account_info(self, uid):
         if uid in self.account_info:
             return self.account_info[uid]

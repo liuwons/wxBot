@@ -10,7 +10,7 @@ Web微信协议参考资料：
 
 [qwx: WeChat Qt frontend 微信Qt前端](https://github.com/xiangzhai/qwx)
 
-## 环境与依赖
+## 1 环境与依赖
 
 目前只能运行于Python 2环境 。
 **wxBot** 用到了Python **requests** , **pypng** , 以及 **pyqrcode** 库，使用之前需要安装这三个库:
@@ -21,10 +21,13 @@ pip install pyqrcode
 pip install pypng
 ```
 
-## 快速开发
-### 代码
+## 2 快速开发
+### 2.1 代码
 
-利用 **wxBot** 最简单的方法就是继承WXBot类并实现handle_msg_all或者schedule函数，然后实例化子类并run，如下的代码对所有来自好友的文本消息回复 "hi"， 并不断向好友tb发送"schedule"。
+利用 **wxBot** 最简单的方法就是继承WXBot类并实现handle_msg_all或者schedule函数，然后实例化子类并run。
+
+以下的代码对所有来自好友的文本消息回复 "hi"， 并不断向好友tb发送"schedule"。
+
 handle_msg_all函数用于处理收到的每条消息，而schedule函数可以做一些任务性的事情(例如不断向好友推送信息或者一些定时任务)。
 
 ```python
@@ -53,7 +56,7 @@ if __name__ == '__main__':
 
 ```
 
-### 运行
+### 2.2 运行
 
 直接用python运行代码(如运行测试代码test.py):
 
@@ -61,7 +64,7 @@ if __name__ == '__main__':
 python test.py
 ```
 
-### 登录微信
+### 2.3 登录微信
 
 程序运行之后，会在当前目录下生成二维码图片文件 qr.png ，用微信扫描此二维码并按操作指示确认登录网页微信。
 
@@ -69,7 +72,7 @@ python test.py
 
 ![login_on_ubuntu](img/login_on_ubuntu.png)
 
-## 效果展示
+## 3 效果展示
 
 测试代码test.py的运行效果：
 
@@ -77,20 +80,20 @@ python test.py
 
 ![后台](img/backfront.jpg)
 
-## 接口
-### handle_msg_all
+## 4 接口
+### 4.1 handle_msg_all
 
 handle_msg_all函数的参数msg是代表一条消息的字典。字段的内容为：
 
 | 字段名 | 字段内容 |
 | ----- | --- |
-| msg_type_id | 整数，消息类型，具体解释可以查看消息类型表 |
+| msg_type_id | 整数，消息类型，具体解释可以查看 **消息类型表** |
 | msg_id | 字符串，消息id |
-| content | 字典，消息内容，具体含有的字段请参考消息类型表，一般含有type(数据类型)与data(数据内容)字段，type与data的对应关系可以参考数据类型表 |
+| content | 字典，消息内容，具体含有的字段请参考 **消息类型表** ，一般含有type(数据类型)与data(数据内容)字段，type与data的对应关系可以参考 **数据类型表**  |
 | user | 字典，消息来源，字典包含name(发送者名称,如果是群则为群名称，如果为微信号，有备注则为备注名，否则为微信号或者群昵称)字段与id(发送者id)字段，都是字符串  |
 
 
-消息类型表：
+### 4.2 消息类型表
 
 | 类型号 | 消息类型 | content |
 | ----- | --- | ------ |
@@ -104,7 +107,7 @@ handle_msg_all函数的参数msg是代表一条消息的字典。字段的内容
 | 99 | 未知账号消息 | 无意义，可以忽略 |
 
 
-数据类型表：
+### 4.3 数据类型表
 
 | type | 数据类型 | data |
 | ---- | ---- | ------ |
@@ -122,7 +125,7 @@ handle_msg_all函数的参数msg是代表一条消息的字典。字段的内容
 | 12 | 未知类型 | 字符串，未解析的xml字符串 |
 
 
-### WXBot对象属性
+### 4.4 WXBot对象属性
 
 WXBot对象在登录并初始化之后,含有以下的可用数据:
 
@@ -134,7 +137,9 @@ WXBot对象在登录并初始化之后,含有以下的可用数据:
 | special_list | 特殊账号列表 |
 | session | WXBot与WEB微信服务器端交互所用的requests Session对象 |
 
-WXBot对象还含有一些可以利用的方法：
+### 4.5 WXBot对象方法
+
+WXBot对象还含有一些可以利用的方法
 
 | 方法 | 描述 |
 | ---- | --- |
