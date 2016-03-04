@@ -360,6 +360,11 @@ class WXBot:
             msg_content['data'] = content
             if self.DEBUG:
                 print '    %s[Redraw]' % msg_prefix
+        elif mtype == 10000:
+            msg_content['type'] = 12
+            msg_content['data'] = msg['Content']
+            if self.DEBUG:
+                print '    [Red Packet]'
         else:
             msg_content['type'] = 99
             msg_content['data'] = content
