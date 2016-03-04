@@ -152,3 +152,27 @@ WXBot对象还含有一些可以利用的方法
 | send_msg(name, word, isfile) | 向好友发送消息，name为好友的备注名或者好友微信号，isfile为False时word为消息，isfile为True时word为文件路径(此时向好友发送文件里的每一行) |
 | is_contact(uid) | 判断id为uid的账号是否是本帐号的好友，返回True(是)或False(不是) |
 | is_public(uid) | 判断id为uid的账号是否是本帐号所关注的公众号，返回True(是)或False(不是) |
+
+
+## 5 Example
+
+bot.py 用 **[图灵机器人](http://www.tuling123.com/)** API 以及 **wxBot** 实现了一个自动回复机器人.
+
+此机器人会回复来自联系人的消息，以及群里@此账号的消息。
+
+群聊时需要将对应的群保存到联系人列表。
+
+群聊实现效果：
+
+![群聊](img/group_chat.png)
+
+
+bot.py的运行方法：
+ 1. 在[图灵机器人官网](http://www.tuling123.com/)注册账号，申请图灵key: [图灵key申请地址](http://www.tuling123.com/html/doc/apikey.html)
+ 2. 在bot.py文件所在目录下新建conf.ini文件，内容为(key字段内容为申请到的图灵key):
+
+ ```txt
+ [main]
+ key=1d2678900f734aa0a23734ace8aec5b1
+ ```
+ 3. 运行bot.py

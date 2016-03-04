@@ -45,6 +45,8 @@ class TulingWXBot(WXBot):
         elif msg['msg_type_id'] == 3:  # group message
             if msg['content']['data'].find('@') >= 0:  # someone @ another
                 my_names = self.get_group_member_name(msg['user']['id'], self.user['UserName'])
+                if my_names is None:
+                    my_names = {}
                 if 'NickName' in self.user and len(self.user['NickName']) > 0:
                     my_names['nickname2'] = self.user['NickName']
                 if 'RemarkName' in self.user and len(self.user['RemarkName']) > 0:
