@@ -5,6 +5,7 @@ from wxbot import *
 import ConfigParser
 import json
 
+
 class TulingWXBot(WXBot):
     def __init__(self):
         WXBot.__init__(self)
@@ -40,10 +41,10 @@ class TulingWXBot(WXBot):
         else:
             return u"知道啦"
 
-    def button(self, msg):
+    def auto_switch(self, msg):
         msg_data = msg['content']['data']
-        STOP = [u'退下',u'走开',u'关闭',u'关掉',u'休息',u'滚开']
-        START = [u'出来',u'启动',u'工作']
+        STOP = [u'退下', u'走开', u'关闭', u'关掉', u'休息', u'滚开']
+        START = [u'出来', u'启动', u'工作']
         if self.robot_switch:
             for i in STOP:
                 if i in msg_data :
@@ -55,15 +56,12 @@ class TulingWXBot(WXBot):
                     self.robot_switch = True
 
     def handle_msg_all(self, msg):
-        #print 'MSG ID:', msg['msg_type_id']
-        if msg['msg_type_id'] == 1 and msg['content']['type'] == 0: # replay to self
+        if not self.robot_switch:
+            return
+        if msg['msg_type_id'] == 1 and msg['content']['type'] == 0:  # reply to self
             self.button(msg)
-            if self.robot_switch:
-                self.send_msg_by_uid(u'[Robot]' + self.tuling_auto_reply(msg['user']['id'], msg['content']['data']), msg['to_user_id'])
         elif msg['msg_type_id'] == 4 and msg['content']['type'] == 0:  # text message from contact
-            self.button(msg)
-            if self.robot_switch:
-                self.send_msg_by_uid(u'[Robot]' + self.tuling_auto_reply(msg['user']['id'], msg['content']['data']), msg['user']['id'])
+            self.send_msg_by_uid(self.tuling_auto_reply(msg['user']['id'], msg['content']['data']), msg['user']['id'])
         elif msg['msg_type_id'] == 3:  # group message
             if msg['content']['data'].find('@') >= 0:  # someone @ another
                 my_names = self.get_group_member_name(msg['user']['id'], self.user['UserName'])
