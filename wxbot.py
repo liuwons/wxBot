@@ -484,6 +484,16 @@ class WXBot:
         dic = r.json()
         return dic['BaseResponse']['Ret'] == 0
 
+    def get_user_id(self, name):
+        for contact in self.contact_list:
+            if 'RemarkName' in contact and contact['RemarkName'] == name:
+                return contact['UserName']
+            elif 'NickName' in contact and contact['NickName'] == name:
+                return contact['UserName']
+            elif 'DisplayName' in contact and contact['DisplayName'] == name:
+                return contact['UserName']
+        return ''
+
     def send_msg(self, name, word, isfile=False):
         uid = self.get_user_id(name)
         if uid:
