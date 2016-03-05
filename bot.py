@@ -59,7 +59,7 @@ class TulingWXBot(WXBot):
         if not self.robot_switch:
             return
         if msg['msg_type_id'] == 1 and msg['content']['type'] == 0:  # reply to self
-            self.button(msg)
+            self.auto_switch(msg)
         elif msg['msg_type_id'] == 4 and msg['content']['type'] == 0:  # text message from contact
             self.send_msg_by_uid(self.tuling_auto_reply(msg['user']['id'], msg['content']['data']), msg['user']['id'])
         elif msg['msg_type_id'] == 3:  # group message
