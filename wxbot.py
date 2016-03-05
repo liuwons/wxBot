@@ -10,6 +10,7 @@ import time
 import re
 import random
 from requests.exceptions import *
+import os,subprocess,sys
 
 
 class WXBot:
@@ -578,6 +579,13 @@ class WXBot:
         qr = pyqrcode.create(string)
         if self.conf['qr'] == 'png':
             qr.png(qr_file_path)
+            if sys.platform.find('darwin') >= 0:
+                subprocess.call(['open', qr_file_path])
+            elif sys.platform.find('linux') >= 0:
+                subprocess.call(['xdg-open', qr_file_path])
+            else:
+                os.startfile(qr_file_path)
+
         elif self.conf['qr'] == 'tty':
             print(qr.terminal(quiet_zone=1))
 
