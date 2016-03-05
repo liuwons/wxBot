@@ -422,6 +422,7 @@ class WXBot:
             message = {'msg_type_id': msg_type_id,
                        'msg_id': msg['MsgId'],
                        'content': content,
+                       'to_user_id': msg['ToUserName'],
                        'user': user}
             self.handle_msg_all(message)
 
