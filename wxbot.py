@@ -578,7 +578,7 @@ class WXBot:
         string = 'https://login.weixin.qq.com/l/' + self.uuid
         qr = pyqrcode.create(string)
         if self.conf['qr'] == 'png':
-            qr.png(qr_file_path)
+            qr.png(qr_file_path, scale=8)
             if sys.platform.find('darwin') >= 0:
                 subprocess.call(['open', qr_file_path])
             elif sys.platform.find('linux') >= 0:
