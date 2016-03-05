@@ -5,12 +5,12 @@ from wxbot import *
 import ConfigParser
 import json
 
-
 class TulingWXBot(WXBot):
     def __init__(self):
         WXBot.__init__(self)
 
         self.tuling_key = ""
+        self.robot_switch = True
 
         try:
             cf = ConfigParser.ConfigParser()
@@ -35,13 +35,35 @@ class TulingWXBot(WXBot):
             else:
                 result = respond['text'].replace('<br>', '  ')
 
+            print '    ROBOT:', result
             return result
         else:
             return u"知道啦"
 
+    def button(self, msg):
+        msg_data = msg['content']['data']
+        STOP = [u'退下',u'走开',u'关闭',u'关掉',u'休息',u'滚开']
+        START = [u'出来',u'启动',u'工作']
+        if self.robot_switch:
+            for i in STOP:
+                if i in msg_data :
+                    self.robot_switch = False
+                    self.send_msg_by_uid(u'[Robot]' + u'机器人已关闭！', msg['to_user_id'])
+        else:
+            for i in START:
+                if i in msg_data:
+                    self.robot_switch = True
+
     def handle_msg_all(self, msg):
-        if msg['msg_type_id'] == 4 and msg['content']['type'] == 0:  # text message from contact
-            self.send_msg_by_uid(self.tuling_auto_reply(msg['user']['id'], msg['content']['data']), msg['user']['id'])
+        #print 'MSG ID:', msg['msg_type_id']
+        if msg['msg_type_id'] == 1 and msg['content']['type'] == 0: # replay to self
+            self.button(msg)
+            if self.robot_switch:
+                self.send_msg_by_uid(u'[Robot]' + self.tuling_auto_reply(msg['user']['id'], msg['content']['data']), msg['to_user_id'])
+        elif msg['msg_type_id'] == 4 and msg['content']['type'] == 0:  # text message from contact
+            self.button(msg)
+            if self.robot_switch:
+                self.send_msg_by_uid(u'[Robot]' + self.tuling_auto_reply(msg['user']['id'], msg['content']['data']), msg['user']['id'])
         elif msg['msg_type_id'] == 3:  # group message
             if msg['content']['data'].find('@') >= 0:  # someone @ another
                 my_names = self.get_group_member_name(msg['user']['id'], self.user['UserName'])
@@ -86,8 +108,10 @@ def main():
     bot = TulingWXBot()
     bot.DEBUG = True
     bot.conf['qr'] = 'png'
+
     bot.run()
 
 
 if __name__ == '__main__':
     main()
+
