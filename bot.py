@@ -60,13 +60,18 @@ class TulingWXBot(WXBot):
                         break
                 if is_at_me:  # someone @ me
                     snames = self.get_group_member_name(msg['user']['id'], msg['content']['user']['id'])
+                    if snames is None:
+                        snames = self.get_account_name(msg['content']['user']['id'])
                     src_name = ''
-                    if 'display_name' in snames and len(snames['display_name']) > 0:
-                        src_name = snames['display_name']
-                    elif 'nickname' in snames and len(snames['nickname']) > 0:
-                        src_name = snames['nickname']
-                    elif 'remark_name' in snames and len(snames['remark_name']) > 0:
-                        src_name = snames['remark_name']
+                    if snames is not None:
+                        if 'display_name' in snames and len(snames['display_name']) > 0:
+                            src_name = snames['display_name']
+                        elif 'nickname' in snames and len(snames['nickname']) > 0:
+                            src_name = snames['nickname']
+                        elif 'remark_name' in snames and len(snames['remark_name']) > 0:
+                            src_name = snames['remark_name']
+                    else:
+                        return
 
                     if src_name != '':
                         reply = '@' + src_name + ' '
