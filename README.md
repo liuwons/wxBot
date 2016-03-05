@@ -147,7 +147,7 @@ python test.py
 | 3 | 图片 | 字符串，图片数据的url，HTTP POST请求此url可以得到jpg文件格式的数据 |
 | 4 | 语音 | 字符串，语音数据的url，HTTP POST请求此url可以得到mp3文件格式的数据 |
 | 5 | 名片 | 字典，包含 `nickname` (昵称)， `alias` (别名)，`province` (省份)，`city` (城市)， `gender` (性别)字段 |
-| 6 | 动画 | 字符串， 动画url, HTTP POST请求此url可以得到mp3文件格式的数据 |
+| 6 | 动画 | 字符串， 动画url, HTTP POST请求此url可以得到gif文件格式的数据 |
 | 7 | 分享 | 字典，包含 `type` (类型)，`title` (标题)，`desc` (描述)，`url` (链接)，`from` (源网站)字段 |
 | 8 | 视频 | 不可用 |
 | 9 | 视频电话 | 不可用 |
@@ -203,20 +203,24 @@ python test.py
 
 - 要接入图灵机器人API时：
 
- 1. 在[图灵机器人官网](http://www.tuling123.com/)注册账号，申请图灵key: [图灵key申请地址](http://www.tuling123.com/html/doc/apikey.html)
- 2. 在 ***bot.py*** 文件所在目录下新建 ***conf.ini*** 文件，内容为:(key字段内容为申请到的图灵key)
- ```txt
- [main]
- key=1d2678900f734aa0a23734ace8aec5b1
- ```
- 3. 运行 ***bot.py***
- ```python
- python bot.py
- ```
+  1. 在[图灵机器人官网](http://www.tuling123.com/)注册账号，申请图灵key: [图灵key申请地址](http://www.tuling123.com/html/doc/apikey.html)
 
-- 不接入图灵机器人API时(此时机器人对联系人消息以及群里@自己的消息统一回复 *知道了* 。)：
+  2. 在 ***bot.py*** 文件所在目录下新建 ***conf.ini*** 文件，内容为:(key字段内容为申请到的图灵key)
 
+    ```txt
+    [main]    
+    key=1d2678900f734aa0a23734ace8aec5b1
+    ```
+
+  3. 运行 ***bot.py***
+
+    ```python
+    python bot.py
+    ```
+
+- 不接入图灵机器人API时(此时机器人对联系人消息以及群里@自己的消息统一回复 *知道了* )：
   1. 运行 ***bot.py***
-  ```python
-  python bot.py
-  ```
+
+    ```python
+    python bot.py
+    ```
