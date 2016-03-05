@@ -47,16 +47,17 @@ class TulingWXBot(WXBot):
         START = [u'出来', u'启动', u'工作']
         if self.robot_switch:
             for i in STOP:
-                if i in msg_data :
+                if i == msg_data:
                     self.robot_switch = False
                     self.send_msg_by_uid(u'[Robot]' + u'机器人已关闭！', msg['to_user_id'])
         else:
             for i in START:
-                if i in msg_data:
+                if i == msg_data:
                     self.robot_switch = True
+                    self.send_msg_by_uid(u'[Robot]' + u'机器人已开启！', msg['to_user_id'])
 
     def handle_msg_all(self, msg):
-        if not self.robot_switch:
+        if not self.robot_switch and msg['msg_type_id'] != 1:
             return
         if msg['msg_type_id'] == 1 and msg['content']['type'] == 0:  # reply to self
             self.auto_switch(msg)
