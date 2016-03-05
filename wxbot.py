@@ -390,9 +390,10 @@ class WXBot:
         """
         for msg in r['AddMsgList']:
             msg_type_id = 99
-            user = {'id': msg['FromUserName']}
+            user = {'id': msg['FromUserName'], 'name': 'unknown'}
             if msg['MsgType'] == 51:  # init message
                 msg_type_id = 0
+                user['name'] = 'system'
             elif msg['FromUserName'] == self.user['UserName']:  # Self
                 msg_type_id = 1
                 user['name'] = 'self'
