@@ -49,8 +49,11 @@ class WXBot:
         r = self.session.post(url, data='{}')
         r.encoding = 'utf-8'
         if self.DEBUG:
-            with open('contacts.json', 'w') as f:
+            with open('contacts.json', 'wb') as f:
                 f.write(r.text.encode('utf-8'))
+        # if self.DEBUG:
+        #     with open('contacts.json', 'wb') as f:
+        #         f.write(r.text)
         dic = json.loads(r.text)
         self.member_list = dic['MemberList']
 
@@ -282,24 +285,24 @@ class WXBot:
                 msg_content['data'] = pos
                 msg_content['detail'] = data
                 if self.DEBUG:
-                    print '    %s[Location] %s ' % (msg_prefix, pos)
+                    print ('    %s[Location] %s ' % (msg_prefix, pos))
             else:
                 msg_content['type'] = 0
                 msg_content['data'] = content.replace(u'\u2005', '')
                 if self.DEBUG:
-                    print '    %s[Text] %s' % (msg_prefix, msg_content['data'])
+                    print( '    %s[Text] %s' % (msg_prefix, msg_content['data']))
         elif mtype == 3:
             msg_content['type'] = 3
             msg_content['data'] = self.get_msg_img_url(msg_id)
             if self.DEBUG:
                 image = self.get_msg_img(msg_id)
-                print '    %s[Image] %s' % (msg_prefix, image)
+                print ('    %s[Image] %s' % (msg_prefix, image))
         elif mtype == 34:
             msg_content['type'] = 4
             msg_content['data'] = self.get_voice_url(msg_id)
             if self.DEBUG:
                 voice = self.get_voice(msg_id)
-                print '    %s[Voice] %s' % (msg_prefix, voice)
+                print ('    %s[Voice] %s' % (msg_prefix, voice))
         elif mtype == 42:
             msg_content['type'] = 5
             info = msg['RecommendInfo']
@@ -309,18 +312,18 @@ class WXBot:
                                    'city': info['City'],
                                    'gender': ['unknown', 'male', 'female'][info['Sex']]}
             if self.DEBUG:
-                print '    %s[Recommend]' % msg_prefix
-                print '    -----------------------------'
-                print '    | NickName: %s' % info['NickName']
-                print '    | Alias: %s' % info['Alias']
-                print '    | Local: %s %s' % (info['Province'], info['City'])
-                print '    | Gender: %s' % ['unknown', 'male', 'female'][info['Sex']]
-                print '    -----------------------------'
+                print ('    %s[Recommend]' % msg_prefix)
+                print ('    -----------------------------')
+                print ('    | NickName: %s' % info['NickName'])
+                print ('    | Alias: %s' % info['Alias'])
+                print ('    | Local: %s %s' % (info['Province'], info['City']))
+                print ('    | Gender: %s' % ['unknown', 'male', 'female'][info['Sex']])
+                print ('    -----------------------------')
         elif mtype == 47:
             msg_content['type'] = 6
             msg_content['data'] = self.search_content('cdnurl', content)
             if self.DEBUG:
-                print '    %s[Animation] %s' % (msg_prefix, msg_content['data'])
+                print ('    %s[Animation] %s' % (msg_prefix, msg_content['data']))
         elif mtype == 49:
             msg_content['type'] = 7
             app_msg_type = ''
@@ -338,39 +341,39 @@ class WXBot:
                                    'url': msg['Url'],
                                    'from': self.search_content('appname', content, 'xml')}
             if self.DEBUG:
-                print '    %s[Share] %s' % (msg_prefix, app_msg_type)
-                print '    --------------------------'
-                print '    | title: %s' % msg['FileName']
-                print '    | desc: %s' % self.search_content('des', content, 'xml')
-                print '    | link: %s' % msg['Url']
-                print '    | from: %s' % self.search_content('appname', content, 'xml')
-                print '    --------------------------'
+                print ('    %s[Share] %s' % (msg_prefix, app_msg_type))
+                print ('    --------------------------')
+                print ('    | title: %s' % msg['FileName'])
+                print ('    | desc: %s' % self.search_content('des', content, 'xml'))
+                print ('    | link: %s' % msg['Url'])
+                print ('    | from: %s' % self.search_content('appname', content, 'xml'))
+                print ('    --------------------------')
 
         elif mtype == 62:
             msg_content['type'] = 8
             msg_content['data'] = content
             if self.DEBUG:
-                print '    %s[Video] Please check on mobiles' % msg_prefix
+                print ('    %s[Video] Please check on mobiles' % msg_prefix)
         elif mtype == 53:
             msg_content['type'] = 9
             msg_content['data'] = content
             if self.DEBUG:
-                print '    %s[Video Call]' % msg_prefix
+                print ('    %s[Video Call]' % msg_prefix)
         elif mtype == 10002:
             msg_content['type'] = 10
             msg_content['data'] = content
             if self.DEBUG:
-                print '    %s[Redraw]' % msg_prefix
+                print ('    %s[Redraw]' % msg_prefix)
         elif mtype == 10000:
             msg_content['type'] = 12
             msg_content['data'] = msg['Content']
             if self.DEBUG:
-                print '    [Red Packet]'
+                print ('    [Red Packet]')
         else:
             msg_content['type'] = 99
             msg_content['data'] = content
             if self.DEBUG:
-                print '    %s[Unknown]' % msg_prefix
+                print ('    %s[Unknown]' % msg_prefix)
         return msg_content
 
     def handle_msg(self, r):
@@ -417,7 +420,7 @@ class WXBot:
                 user['name'] = 'unknown'
 
             if self.DEBUG and msg_type_id != 0:
-                print '[MSG] %s:' % user['name']
+                print ('[MSG] %s:' % user['name'])
             content = self.extract_msg_content(msg_type_id, msg)
             message = {'msg_type_id': msg_type_id,
                        'msg_id': msg['MsgId'],
@@ -505,7 +508,7 @@ class WXBot:
                     result = True
                     for line in f.readlines():
                         line = line.replace('\n', '')
-                        print '-> ' + name + ': ' + line
+                        print ('-> ' + name + ': ' + line)
                         if self.send_msg_by_uid(line, uid):
                             pass
                         else:
@@ -519,7 +522,7 @@ class WXBot:
                     return False
         else:
             if self.DEBUG:
-                print '[ERROR] This user does not exist .'
+                print ('[ERROR] This user does not exist .')
             return True
 
     @staticmethod
@@ -537,24 +540,24 @@ class WXBot:
     def run(self):
         self.get_uuid()
         self.gen_qr_code('qr.png')
-        print '[INFO] Please use WeCaht to scan the QR code .'
+        print ('[INFO] Please use WeCaht to scan the QR code .')
         self.wait4login(1)
-        print '[INFO] Please confirm to login .'
+        print ('[INFO] Please confirm to login .')
         self.wait4login(0)
         if self.login():
-            print '[INFO] Web WeChat login succeed .'
+            print ('[INFO] Web WeChat login succeed .')
         else:
-            print '[ERROR] Web WeChat login failed .'
+            print ('[ERROR] Web WeChat login failed .')
             return
         if self.init():
-            print '[INFO] Web WeChat init succeed .'
+            print ('[INFO] Web WeChat init succeed .')
         else:
-            print '[INFO] Web WeChat init failed'
+            print ('[INFO] Web WeChat init failed')
             return
         self.status_notify()
         self.get_contact()
-        print '[INFO] Get %d contacts' % len(self.contact_list)
-        print '[INFO] Start to process messages .'
+        print ('[INFO] Get %d contacts' % len(self.contact_list))
+        print ('[INFO] Start to process messages .')
         self.proc_msg()
 
     def get_uuid(self):
@@ -610,9 +613,9 @@ class WXBot:
             self.base_uri = redirect_uri[:redirect_uri.rfind('/')]
             return True
         elif code == '408':
-            print '[ERROR] WeChat login timeout .'
+            print ('[ERROR] WeChat login timeout .')
         else:
-            print '[ERROR] WeChat login exception .'
+            print ('[ERROR] WeChat login exception .')
         return False
 
     def login(self):
@@ -693,7 +696,7 @@ class WXBot:
             'synckey': self.sync_key_str,
             '_': int(time.time()),
         }
-        url = 'https://' + self.sync_host + '.weixin.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
+        url = 'https://' + self.sync_host + '.weixin.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.parse.urlencode(params)
         try:
             r = self.session.get(url)
         except (ConnectionError, ReadTimeout):

@@ -2,7 +2,7 @@
 # coding: utf-8
 
 from wxbot import *
-import ConfigParser
+import configparser
 import json
 
 
@@ -14,20 +14,23 @@ class TulingWXBot(WXBot):
         self.robot_switch = True
 
         try:
-            cf = ConfigParser.ConfigParser()
+            cf = configparser.ConfigParser()
             cf.read('conf.ini')
             self.tuling_key = cf.get('main', 'key')
         except Exception:
             pass
-        print 'tuling_key:', self.tuling_key
+        print ('tuling_key:', self.tuling_key)
 
     def tuling_auto_reply(self, uid, msg):
         if self.tuling_key:
             url = "http://www.tuling123.com/openapi/api"
             user_id = uid.replace('@', '')[:30]
-            body = {'key': self.tuling_key, 'info': msg.encode('utf8'), 'userid': user_id}
-            r = requests.post(url, data=body)
-            respond = json.loads(r.text)
+            body = {'key': self.tuling_key, 'info': msg.encode('utf-8'), 'userid': user_id}
+            headers = {"Content-Type": "application/x-www-form-urlencoded"}
+            r = requests.post(url, data=body,headers=headers)
+            print(r.text)
+            c=str(r.text)
+            respond = json.loads(c)
             result = ''
             if respond['code'] == 100000:
                 result = respond['text'].replace('<br>', '  ')
