@@ -63,3 +63,8 @@ target/
 
 
 *.json
+.idea/
+
+qr.png
+/*.jpg
+*.ini
