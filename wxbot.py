@@ -596,7 +596,7 @@ class WXBot:
         
         result = self.wait4login()
         if result != SUCCESS:
-            print '[ERROR] Web WeChat login failed. failed code=result'%(result, )
+            print '[ERROR] Web WeChat login failed. failed code=%s'%(result, )
             return
         
         if self.login():
