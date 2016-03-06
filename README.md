@@ -39,7 +39,7 @@ Web微信协议参考资料：
 
 ## 1 环境与依赖
 
-目前只能运行于Python 2环境 。
+目前能运行于Python 3.4环境 。
 
 **wxBot** 用到了Python **requests** , **pypng** , 以及 **pyqrcode** 库。
 
