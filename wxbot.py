@@ -10,7 +10,8 @@ import time
 import re
 import random
 from requests.exceptions import ConnectionError, ReadTimeout
-import os,subprocess,sys
+import os
+import HTMLParser
 
 UNKONWN = 'unkonwn'
 SUCCESS = '200'
@@ -33,18 +34,27 @@ class WXBot:
         self.base_request = {}
         self.sync_key_str = ''
         self.sync_key = []
-        self.user = {}
-        self.account_info = {}
-        self.member_list = []  # all kind of accounts: contacts, public accounts, groups, special accounts
+        self.sync_host = ''
+
+        self.session = requests.Session()
+        self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
+        self.conf = {'qr': 'png'}
+
+        self.my_account = {}  # this account
+
+        # all kind of accounts: contacts, public accounts, groups, special accounts
+        self.member_list = []
+
+        # members of all groups, {'group_id1': [member1, member2, ...], ...}
+        self.group_members = {}
+
+        # all accounts, {'group_member':{'id':{'type':'group_member', 'info':{}}, ...}, 'normal_member':{'id':{}, ...}}
+        self.account_info = {'group_member': {}, 'normal_member': {}}
+
         self.contact_list = []  # contact list
         self.public_list = []  # public account list
         self.group_list = []  # group chat list
         self.special_list = []  # special list account
-        self.group_members = {}  # members of all groups
-        self.sync_host = ''
-        self.session = requests.Session()
-        self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
-        self.conf = {'qr': 'png'}
 
     def get_contact(self):
         """Get information of all contacts of current account."""
@@ -71,28 +81,32 @@ class WXBot:
         self.public_list = []
         self.special_list = []
         self.group_list = []
+
         for contact in self.member_list:
             if contact['VerifyFlag'] & 8 != 0:  # public account
                 self.public_list.append(contact)
-                self.account_info[contact['UserName']] = {'type': 'public', 'info': contact}
+                self.account_info['normal_member'][contact['UserName']] = {'type': 'public', 'info': contact}
             elif contact['UserName'] in special_users:  # special account
                 self.special_list.append(contact)
-                self.account_info[contact['UserName']] = {'type': 'special', 'info': contact}
+                self.account_info['normal_member'][contact['UserName']] = {'type': 'special', 'info': contact}
             elif contact['UserName'].find('@@') != -1:  # group
                 self.group_list.append(contact)
-                self.account_info[contact['UserName']] = {'type': 'group', 'info': contact}
-            elif contact['UserName'] == self.user['UserName']:  # self
-                self.account_info[contact['UserName']] = {'type': 'self', 'info': contact}
+                self.account_info['normal_member'][contact['UserName']] = {'type': 'group', 'info': contact}
+            elif contact['UserName'] == self.my_account['UserName']:  # self
+                self.account_info['normal_member'][contact['UserName']] = {'type': 'self', 'info': contact}
                 pass
             else:
                 self.contact_list.append(contact)
+                self.account_info['normal_member'][contact['UserName']] = {'type': 'contact', 'info': contact}
 
         self.group_members = self.batch_get_group_members()
 
         for group in self.group_members:
             for member in self.group_members[group]:
                 if member['UserName'] not in self.account_info:
-                    self.account_info[member['UserName']] = {'type': 'group_member', 'info': member, 'group': group}
+                    self.account_info['group_member'][member['UserName']] = {'type': 'group_member',
+                                                                             'info': member,
+                                                                             'group': group}
 
         if self.DEBUG:
             with open('contact_list.json', 'w') as f:
@@ -142,25 +156,39 @@ class WXBot:
         for member in group:
             if member['UserName'] == uid:
                 names = {}
-                if 'RemarkName' in member:
+                if 'RemarkName' in member and member['RemarkName']:
                     names['remark_name'] = member['RemarkName']
-                if 'NickName' in member:
+                if 'NickName' in member and member['NickName']:
                     names['nickname'] = member['NickName']
-                if 'DisplayName' in member:
+                if 'DisplayName' in member and member['DisplayName']:
                     names['display_name'] = member['DisplayName']
                 return names
         return None
 
-    def get_account_info(self, uid):
-        if uid in self.account_info:
-            return self.account_info[uid]
+    def get_contact_info(self, uid):
+        if uid in self.account_info['normal_member']:
+            return self.account_info['normal_member'][uid]
         else:
             return None
 
-    def get_account_name(self, uid):
-        info = self.get_account_info(uid)
+    def get_group_member_info(self, uid):
+        if uid in self.account_info['group_member']:
+            return self.account_info['group_member'][uid]
+        else:
+            return None
+
+    def get_group_member_info(self, uid, gid):
+        if gid not in self.group_members:
+            return None
+        for member in self.group_members[gid]:
+            if member['UserName'] == uid:
+                return {'type': 'group_member', 'info': member}
+        return None
+
+    def get_contact_name(self, uid):
+        info = self.get_contact_info(uid)
         if info is None:
-            return 'unknown'
+            return None
         info = info['info']
         name = {}
         if 'RemarkName' in info and info['RemarkName']:
@@ -169,17 +197,68 @@ class WXBot:
             name['nickname'] = info['NickName']
         if 'DisplayName' in info and info['DisplayName']:
             name['display_name'] = info['DisplayName']
-        return name
+        if len(name) == 0:
+            return None
+        else:
+            return name
+
+    def get_group_member_name(self, uid):
+        info = self.get_group_member_info(uid)
+        if info is None:
+            return None
+        info = info['info']
+        name = {}
+        if 'RemarkName' in info and info['RemarkName']:
+            name['remark_name'] = info['RemarkName']
+        if 'NickName' in info and info['NickName']:
+            name['nickname'] = info['NickName']
+        if 'DisplayName' in info and info['DisplayName']:
+            name['display_name'] = info['DisplayName']
+        if len(name) == 0:
+            return None
+        else:
+            return name
+
+    def get_group_member_name(self, uid, gid):
+        info = self.get_group_member_info(uid, gid)
+        if info is None:
+            return None
+        info = info['info']
+        name = {}
+        if 'RemarkName' in info and info['RemarkName']:
+            name['remark_name'] = info['RemarkName']
+        if 'NickName' in info and info['NickName']:
+            name['nickname'] = info['NickName']
+        if 'DisplayName' in info and info['DisplayName']:
+            name['display_name'] = info['DisplayName']
+        if len(name) == 0:
+            return None
+        else:
+            return name
 
     @staticmethod
-    def get_prefer_name(name):
+    def get_contact_prefer_name(name):
+        if name is None:
+            return None
+        if 'remark_name' in name:
+            return name['remark_name']
+        if 'nickname' in name:
+            return name['nickname']
+        if 'display_name' in name:
+            return name['display_name']
+        return None
+
+    @staticmethod
+    def get_group_member_prefer_name(name):
+        if name is None:
+            return None
         if 'remark_name' in name:
             return name['remark_name']
         if 'display_name' in name:
             return name['display_name']
         if 'nickname' in name:
             return name['nickname']
-        return 'unknown'
+        return None
 
     def get_user_type(self, wx_user_id):
         """
@@ -236,6 +315,39 @@ class WXBot:
         """
         pass
 
+    @staticmethod
+    def proc_at_info(msg):
+        if not msg:
+            return '', []
+        segs = msg.split(u'\u2005')
+        str_msg_all = ''
+        str_msg = ''
+        infos = []
+        if len(segs) > 1:
+            for i in range(0, len(segs)-1):
+                segs[i] += u'\u2005'
+                pm = re.search(u'@.*\u2005', segs[i]).group()
+                if pm:
+                    name = pm[1:-1]
+                    string = segs[i].replace(pm, '')
+                    str_msg_all += string + '@' + name + ' '
+                    str_msg += string
+                    if string:
+                        infos.append({'type': 'str', 'value': string})
+                    infos.append({'type': 'at', 'value': name})
+                else:
+                    infos.append({'type': 'str', 'value': segs[i]})
+                    str_msg_all += segs[i]
+                    str_msg += segs[i]
+            str_msg_all += segs[-1]
+            str_msg += segs[-1]
+            infos.append({'type': 'str', 'value': segs[-1]})
+        else:
+            infos.append({'type': 'str', 'value': segs[-1]})
+            str_msg_all = msg
+            str_msg = msg
+        return str_msg_all.replace(u'\u2005', ''), str_msg.replace(u'\u2005', ''), infos
+
     def extract_msg_content(self, msg_type_id, msg):
         """
         content_type_id:
@@ -256,7 +368,7 @@ class WXBot:
         :return: The extracted content of the message.
         """
         mtype = msg['MsgType']
-        content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
+        content = HTMLParser.HTMLParser().unescape(msg['Content'])
         msg_id = msg['MsgId']
 
         msg_content = {}
@@ -270,7 +382,12 @@ class WXBot:
             content = content[sp:]
             content = content.replace('<br/>', '')
             uid = uid[:-1]
-            msg_content['user'] = {'id': uid, 'name': self.get_prefer_name(self.get_account_name(uid))}
+            name = self.get_contact_prefer_name(self.get_contact_name(uid))
+            if not name:
+                name = self.get_group_member_prefer_name(self.get_group_member_name(uid, msg['FromUserName']))
+            if not name:
+                name = 'unknown'
+            msg_content['user'] = {'id': uid, 'name': name}
         else:  # Self, Contact, Special, Public, Unknown
             pass
 
@@ -289,7 +406,16 @@ class WXBot:
                     print '    %s[Location] %s ' % (msg_prefix, pos)
             else:
                 msg_content['type'] = 0
-                msg_content['data'] = content.replace(u'\u2005', '')
+                if msg_type_id == 3 or (msg_type_id == 1 and msg['ToUserName'][:2] == '@@'):  # Group text message
+                    msg_infos = self.proc_at_info(content)
+                    str_msg_all = msg_infos[0]
+                    str_msg = msg_infos[1]
+                    detail = msg_infos[2]
+                    msg_content['data'] = str_msg_all
+                    msg_content['detail'] = detail
+                    msg_content['desc'] = str_msg
+                else:
+                    msg_content['data'] = content
                 if self.DEBUG:
                     print '    %s[Text] %s' % (msg_prefix, msg_content['data'])
         elif mtype == 3:
@@ -365,11 +491,11 @@ class WXBot:
             msg_content['data'] = content
             if self.DEBUG:
                 print '    %s[Redraw]' % msg_prefix
-        elif mtype == 10000:
+        elif mtype == 10000:  # unknown, maybe red packet, or group invite
             msg_content['type'] = 12
             msg_content['data'] = msg['Content']
             if self.DEBUG:
-                print '    [Red Packet]'
+                print '    [Unknown]'
         else:
             msg_content['type'] = 99
             msg_content['data'] = content
@@ -398,7 +524,7 @@ class WXBot:
             if msg['MsgType'] == 51:  # init message
                 msg_type_id = 0
                 user['name'] = 'system'
-            elif msg['FromUserName'] == self.user['UserName']:  # Self
+            elif msg['FromUserName'] == self.my_account['UserName']:  # Self
                 msg_type_id = 1
                 user['name'] = 'self'
             elif msg['ToUserName'] == 'filehelper':  # File Helper
@@ -406,19 +532,22 @@ class WXBot:
                 user['name'] = 'file_helper'
             elif msg['FromUserName'][:2] == '@@':  # Group
                 msg_type_id = 3
-                user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
+                user['name'] = self.get_contact_prefer_name(self.get_contact_name(user['id']))
             elif self.is_contact(msg['FromUserName']):  # Contact
                 msg_type_id = 4
-                user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
+                user['name'] = self.get_contact_prefer_name(self.get_contact_name(user['id']))
             elif self.is_public(msg['FromUserName']):  # Public
                 msg_type_id = 5
-                user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
+                user['name'] = self.get_contact_prefer_name(self.get_contact_name(user['id']))
             elif self.is_special(msg['FromUserName']):  # Special
                 msg_type_id = 6
-                user['name'] = self.get_prefer_name(self.get_account_name(user['id']))
+                user['name'] = self.get_contact_prefer_name(self.get_contact_name(user['id']))
             else:
                 msg_type_id = 99
                 user['name'] = 'unknown'
+            if not user['name']:
+                user['name'] = 'unknown'
+            user['name'] = HTMLParser.HTMLParser().unescape(user['name'])
 
             if self.DEBUG and msg_type_id != 0:
                 print '[MSG] %s:' % user['name']
@@ -476,7 +605,7 @@ class WXBot:
             'Msg': {
                 "Type": 1,
                 "Content": word,
-                "FromUserName": self.user['UserName'],
+                "FromUserName": self.my_account['UserName'],
                 "ToUserName": dst,
                 "LocalID": msg_id,
                 "ClientMsgId": msg_id
@@ -492,6 +621,8 @@ class WXBot:
         return dic['BaseResponse']['Ret'] == 0
 
     def get_user_id(self, name):
+        if name == '':
+            return ''
         for contact in self.contact_list:
             if 'RemarkName' in contact and contact['RemarkName'] == name:
                 return contact['UserName']
@@ -589,13 +720,7 @@ class WXBot:
         qr = pyqrcode.create(string)
         if self.conf['qr'] == 'png':
             qr.png(qr_file_path, scale=8)
-            if sys.platform.find('darwin') >= 0:
-                subprocess.call(['open', qr_file_path])
-            elif sys.platform.find('linux') >= 0:
-                subprocess.call(['xdg-open', qr_file_path])
-            else:
-                os.startfile(qr_file_path)
-
+            os.startfile(qr_file_path)
         elif self.conf['qr'] == 'tty':
             print(qr.terminal(quiet_zone=1))
 
@@ -692,7 +817,7 @@ class WXBot:
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
         self.sync_key = dic['SyncKey']
-        self.user = dic['User']
+        self.my_account = dic['User']
         self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
                                       for keyVal in self.sync_key['List']])
         return dic['BaseResponse']['Ret'] == 0
@@ -703,8 +828,8 @@ class WXBot:
         params = {
             'BaseRequest': self.base_request,
             "Code": 3,
-            "FromUserName": self.user['UserName'],
-            "ToUserName": self.user['UserName'],
+            "FromUserName": self.my_account['UserName'],
+            "ToUserName": self.my_account['UserName'],
             "ClientMsgId": int(time.time())
         }
         r = self.session.post(url, data=json.dumps(params))
