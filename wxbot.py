@@ -9,7 +9,7 @@ import urllib
 import time
 import re
 import random
-from requests.exceptions import *
+from requests.exceptions import ConnectionError, ReadTimeout
 import os,subprocess,sys
 
 UNKONWN = 'unkonwn'
@@ -541,7 +541,7 @@ class WXBot:
     def run(self):
         self.get_uuid()
         self.gen_qr_code('qr.png')
-        print '[INFO] Please use WeCaht to scan the QR code .'
+        print '[INFO] Please use WeChat to scan the QR code .'
         
         result = self.wait4login()
         if result != SUCCESS:
@@ -551,7 +551,7 @@ class WXBot:
         if self.login():
             print '[INFO] Web WeChat login succeed .'
         else:
-            print '[ERROR] Web WeChat login failed.'
+            print '[ERROR] Web WeChat login faile .'
             return
 
         if self.init():
