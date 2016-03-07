@@ -551,7 +551,7 @@ class WXBot:
         if self.login():
             print '[INFO] Web WeChat login succeed .'
         else:
-            print '[ERROR] Web WeChat login faile .'
+            print '[ERROR] Web WeChat login failed .'
             return
 
         if self.init():
