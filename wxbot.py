@@ -10,7 +10,7 @@ import time
 import re
 import random
 from requests.exceptions import *
-import os
+import webbrowser
 import HTMLParser
 
 
@@ -712,7 +712,7 @@ class WXBot:
         qr = pyqrcode.create(string)
         if self.conf['qr'] == 'png':
             qr.png(qr_file_path, scale=8)
-            os.startfile(qr_file_path)
+            webbrowser.open(qr_file_path)
         elif self.conf['qr'] == 'tty':
             print(qr.terminal(quiet_zone=1))
 
