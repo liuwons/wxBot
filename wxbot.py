@@ -668,7 +668,7 @@ class WXBot:
     def run(self):
         self.get_uuid()
         self.gen_qr_code('qr.png')
-        print '[INFO] Please use WeCaht to scan the QR code .'
+        print '[INFO] Please use WeChat to scan the QR code .'
         self.wait4login(1)
         print '[INFO] Please confirm to login .'
         self.wait4login(0)
