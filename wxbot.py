@@ -417,7 +417,10 @@ class WXBot:
                 else:
                     msg_content['data'] = content
                 if self.DEBUG:
-                    print '    %s[Text] %s' % (msg_prefix, msg_content['data'])
+                    try:
+                        print '    %s[Text] %s' % (msg_prefix, msg_content['data'])
+                    except UnicodeEncodeError:
+                        print '    %s[Text] (illegal text).' % msg_prefix
         elif mtype == 3:
             msg_content['type'] = 3
             msg_content['data'] = self.get_msg_img_url(msg_id)
@@ -592,8 +595,8 @@ class WXBot:
                     pass
             self.schedule()
             check_time = time.time() - check_time
-            if check_time < 0.5:
-                time.sleep(0.5 - check_time)
+            if check_time < 0.8:
+                time.sleep(1 - check_time)
 
     def send_msg_by_uid(self, word, dst='filehelper'):
         url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % self.pass_ticket
@@ -857,7 +860,7 @@ class WXBot:
         }
         url = 'https://' + self.sync_host + '.weixin.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
         try:
-            r = self.session.get(url)
+            r = self.session.get(url, timeout=60)
         except (ConnectionError, ReadTimeout):
             return [-1, -1]
         r.encoding = 'utf-8'
@@ -876,7 +879,7 @@ class WXBot:
             'rr': ~int(time.time())
         }
         try:
-            r = self.session.post(url, data=json.dumps(params))
+            r = self.session.post(url, data=json.dumps(params), timeout=60)
         except (ConnectionError, ReadTimeout):
             return None
         r.encoding = 'utf-8'
