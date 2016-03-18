@@ -26,15 +26,11 @@ def show_image(file):
     else:
         from pipes import quote
 
-    if sys.platform == "win32":
+    if sys.platform == "darwin":
+        command = "open -a /Applications/Preview.app %s&" % quote(file)
+        os.system(command)
+    else :
         webbrowser.open(file)
-    elif sys.platform == "darwin":
-        def get_command(file, **options):
-            command = "open -a /Applications/Preview.app"
-            command = "(%s %s)&" % (command, quote(file))
-            return command
-
-        os.system(get_command(file))
 
 class WXBot:
     """WXBot, a framework to process WeChat messages"""
