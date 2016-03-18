@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
+import sys
+import webbrowser
 import pyqrcode
 import requests
 import json
@@ -9,7 +12,6 @@ import urllib
 import time
 import re
 import random
-from PIL import Image
 from requests.exceptions import ConnectionError, ReadTimeout
 import HTMLParser
 
@@ -17,6 +19,22 @@ UNKONWN = 'unkonwn'
 SUCCESS = '200'
 SCANED  = '201'
 TIMEOUT = '408'
+
+def show_image(file):
+    if sys.version_info >= (3, 3):
+        from shlex import quote
+    else:
+        from pipes import quote
+
+    if sys.platform == "win32":
+        webbrowser.open(file)
+    elif sys.platform == "darwin":
+        def get_command(file, **options):
+            command = "open -a /Applications/Preview.app"
+            command = "(%s %s)&" % (command, quote(file))
+            return command
+
+        os.system(get_command(file))
 
 class WXBot:
     """WXBot, a framework to process WeChat messages"""
@@ -723,8 +741,9 @@ class WXBot:
         qr = pyqrcode.create(string)
         if self.conf['qr'] == 'png':
             qr.png(qr_file_path, scale=8)
-            img = Image.open(qr_file_path)
-            img.show()
+            show_image(qr_file_path)
+            # img = Image.open(qr_file_path)
+            # img.show()
         elif self.conf['qr'] == 'tty':
             print(qr.terminal(quiet_zone=1))
 
