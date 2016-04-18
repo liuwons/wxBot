@@ -20,7 +20,12 @@ SUCCESS = '200'
 SCANED  = '201'
 TIMEOUT = '408'
 
+
 def show_image(file):
+    """
+    跨平台显示图片文件
+    :param file: 图片文件路径
+    """
     if sys.version_info >= (3, 3):
         from shlex import quote
     else:
@@ -29,11 +34,12 @@ def show_image(file):
     if sys.platform == "darwin":
         command = "open -a /Applications/Preview.app %s&" % quote(file)
         os.system(command)
-    else :
+    else:
         webbrowser.open(file)
 
+
 class WXBot:
-    """WXBot, a framework to process WeChat messages"""
+    """WXBot功能类"""
 
     def __init__(self):
         self.DEBUG = False
@@ -54,24 +60,39 @@ class WXBot:
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
         self.conf = {'qr': 'png'}
 
-        self.my_account = {}  # this account
+        self.my_account = {}  # 当前账户
 
-        # all kind of accounts: contacts, public accounts, groups, special accounts
+        # 所有相关账号: 联系人, 公众号, 群组, 特殊账号
         self.member_list = []
 
-        # members of all groups, {'group_id1': [member1, member2, ...], ...}
+        # 所有群组的成员, {'group_id1': [member1, member2, ...], ...}
         self.group_members = {}
 
-        # all accounts, {'group_member':{'id':{'type':'group_member', 'info':{}}, ...}, 'normal_member':{'id':{}, ...}}
+        # 所有账户, {'group_member':{'id':{'type':'group_member', 'info':{}}, ...}, 'normal_member':{'id':{}, ...}}
         self.account_info = {'group_member': {}, 'normal_member': {}}
 
-        self.contact_list = []  # contact list
-        self.public_list = []  # public account list
-        self.group_list = []  # group chat list
-        self.special_list = []  # special list account
+        self.contact_list = []  # 联系人列表
+        self.public_list = []  # 公众账号列表
+        self.group_list = []  # 群聊列表
+        self.special_list = []  # 特殊账号列表
+
+    @staticmethod
+    def to_unicode(string, encoding='utf-8'):
+        """
+        将字符串转换为Unicode
+        :param string: 待转换字符串
+        :param encoding: 字符串解码方式
+        :return: 转换后的Unicode字符串
+        """
+        if isinstance(string, str):
+            return string.decode(encoding)
+        elif isinstance(string, unicode):
+            return string
+        else:
+            raise Exception('Unknown Type')
 
     def get_contact(self):
-        """Get information of all contacts of current account."""
+        """获取当前账户的所有相关账号(包括联系人、公众号、群聊、特殊账号)"""
         url = self.base_uri + '/webwxgetcontact?pass_ticket=%s&skey=%s&r=%s' \
                               % (self.pass_ticket, self.skey, int(time.time()))
         r = self.session.post(url, data='{}')
@@ -97,16 +118,16 @@ class WXBot:
         self.group_list = []
 
         for contact in self.member_list:
-            if contact['VerifyFlag'] & 8 != 0:  # public account
+            if contact['VerifyFlag'] & 8 != 0:  # 公众号
                 self.public_list.append(contact)
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'public', 'info': contact}
-            elif contact['UserName'] in special_users:  # special account
+            elif contact['UserName'] in special_users:  # 特殊账户
                 self.special_list.append(contact)
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'special', 'info': contact}
-            elif contact['UserName'].find('@@') != -1:  # group
+            elif contact['UserName'].find('@@') != -1:  # 群聊
                 self.group_list.append(contact)
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'group', 'info': contact}
-            elif contact['UserName'] == self.my_account['UserName']:  # self
+            elif contact['UserName'] == self.my_account['UserName']:  # 自己
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'self', 'info': contact}
                 pass
             else:
@@ -140,7 +161,7 @@ class WXBot:
         return True
 
     def batch_get_group_members(self):
-        """Get information of accounts in all groups at once."""
+        """批量获取所有群聊成员信息"""
         url = self.base_uri + '/webwxbatchgetcontact?type=ex&r=%s&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
         params = {
             'BaseRequest': self.base_request,
@@ -159,10 +180,10 @@ class WXBot:
 
     def get_group_member_name(self, gid, uid):
         """
-        Get name of a member in a group.
-        :param gid: group id
-        :param uid: group member id
-        :return: names like {"display_name": "test_user", "nickname": "test", "remark_name": "for_test" }
+        获取群聊中指定成员的名称信息
+        :param gid: 群id
+        :param uid: 群聊成员id
+        :return: 名称信息，类似 {"display_name": "test_user", "nickname": "test", "remark_name": "for_test" }
         """
         if gid not in self.group_members:
             return None
@@ -276,9 +297,9 @@ class WXBot:
 
     def get_user_type(self, wx_user_id):
         """
-        Get the relationship of a account and current user.
-        :param wx_user_id:
-        :return: The type of the account.
+        获取特定账号与自己的关系
+        :param wx_user_id: 账号id:
+        :return: 与当前账号的关系
         """
         for account in self.contact_list:
             if wx_user_id == account['UserName']:
@@ -318,14 +339,13 @@ class WXBot:
 
     def handle_msg_all(self, msg):
         """
-        The function to process all WeChat messages, please override this function.
+        处理所有消息，请子类化后覆盖此函数
         msg:
-            msg_id  ->  id of the received WeChat message
-            msg_type_id  ->  the type of the message
-            user  ->  the account that the message if sent from
-            content  ->  content of the message
-        :param msg: The received message.
-        :return: None
+            msg_id  ->  消息id
+            msg_type_id  ->  消息类型id
+            user  ->  发送消息的账号id
+            content  ->  消息内容
+        :param msg: 收到的消息
         """
         pass
 
@@ -377,9 +397,9 @@ class WXBot:
             10 -> Redraw
             11 -> Empty
             99 -> Unknown
-        :param msg_type_id: The type of the received message.
-        :param msg: The received message.
-        :return: The extracted content of the message.
+        :param msg_type_id: 消息类型id
+        :param msg: 消息结构体
+        :return: 解析的消息
         """
         mtype = msg['MsgType']
         content = HTMLParser.HTMLParser().unescape(msg['Content'])
@@ -390,7 +410,7 @@ class WXBot:
             return {'type': 11, 'data': ''}
         elif msg_type_id == 2:  # File Helper
             return {'type': 0, 'data': content.replace('<br/>', '\n')}
-        elif msg_type_id == 3:  # Group
+        elif msg_type_id == 3:  # 群聊
             sp = content.find('<br/>')
             uid = content[:sp]
             content = content[sp:]
@@ -522,7 +542,7 @@ class WXBot:
 
     def handle_msg(self, r):
         """
-        The inner function that processes raw WeChat messages.
+        处理原始微信消息的内部函数
         msg_type_id:
             0 -> Init
             1 -> Self
@@ -532,8 +552,7 @@ class WXBot:
             5 -> Public
             6 -> Special
             99 -> Unknown
-        :param r: The raw data of the messages.
-        :return: None
+        :param r: 原始微信消息
         """
         for msg in r['AddMsgList']:
             msg_type_id = 99
@@ -578,10 +597,8 @@ class WXBot:
 
     def schedule(self):
         """
-        The function to do schedule works.
-        This function will be called a lot of times.
-        Please override this if needed.
-        :return: None
+        做任务型事情的函数，如果需要，可以在子类中覆盖此函数
+        此函数在处理消息的间隙被调用，请不要长时间阻塞此函数
         """
         pass
 
@@ -590,20 +607,20 @@ class WXBot:
         while True:
             check_time = time.time()
             [retcode, selector] = self.sync_check()
-            if retcode == '1100':  # logout from mobile
+            if retcode == '1100':  # 从微信客户端上登出
                 break
-            elif retcode == '1101':  # login web WeChat from other devide
+            elif retcode == '1101':  # 从其它设备上登了网页微信
                 break
             elif retcode == '0':
-                if selector == '2':  # new message
+                if selector == '2':  # 有新消息
                     r = self.sync()
                     if r is not None:
                         self.handle_msg(r)
-                elif selector == '7':  # Play WeChat on mobile
+                elif selector == '7':  # 在手机上操作了微信
                     r = self.sync()
                     if r is not None:
                         self.handle_msg(r)
-                elif selector == '0':  # nothing
+                elif selector == '0':  # 无事件
                     pass
                 else:
                     pass
@@ -752,14 +769,14 @@ class WXBot:
         return code, data
 
     def wait4login(self):
-        '''
+        """
         http comet:
-        tip=1, the request wait for user to scan the qr,
+        tip=1, 等待用户扫描二维码,
                201: scaned
                408: timeout
-        tip=0, the request wait for user confirm,
+        tip=0, 等待用户确认登录,
                200: confirmed
-        '''
+        """
         LOGIN_TEMPLATE = 'https://login.weixin.qq.com/cgi-bin/mmwebwx-bin/login?tip=%s&uuid=%s&_=%s'
         tip = 1
 
@@ -775,7 +792,7 @@ class WXBot:
             if code == SCANED:
                 print '[INFO] Please confirm to login .'
                 tip = 0
-            elif code == SUCCESS: #confirmed sucess
+            elif code == SUCCESS:  # 确认登录成功
                 param = re.search(r'window.redirect_uri="(\S+?)";', data)
                 redirect_uri = param.group(1) + '&fun=new'
                 self.redirect_uri = redirect_uri
@@ -784,7 +801,7 @@ class WXBot:
             elif code == TIMEOUT:
                 print '[ERROR] WeChat login timeout. retry in %s secs later...'%(try_later_secs, )
 
-                tip = 1 #need to reset tip, because the server will reset the peer connection
+                tip = 1 # 重置
                 retry_time -= 1
                 time.sleep(try_later_secs)
             else:
