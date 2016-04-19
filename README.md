@@ -72,10 +72,10 @@ from wxbot import *
 class MyWXBot(WXBot):
     def handle_msg_all(self, msg):
         if msg['msg_type_id'] == 4 and msg['content']['type'] == 0:
-            self.send_msg_by_uid('hi', msg['user']['id'])
+            self.send_msg_by_uid(u'hi', msg['user']['id'])
 
     def schedule(self):
-        self.send_msg('tb', 'schedule')
+        self.send_msg(u'tb', u'schedule')
         time.sleep(1)
 
 def main():
@@ -189,7 +189,7 @@ python test.py
 
 | 方法 | 描述 |
 | ---- | --- |
-| `get_icon(id)` | 获取用户icon并保存到本地文件 ***img_[id].jpg***  , `id` 为用户id(Web微信数据) |
+| `get_icon(uid, gid)` | 获取联系人或者群聊成员头像并保存到本地文件 ***img_[uid].jpg***  , `uid` 为用户id, `gid` 为群id |
 | `get_head_img(id)` | 获取用户头像并保存到本地文件 ***img_[id].jpg*** ，`id` 为用户id(Web微信数据) |
 | `get_msg_img(msgid)` | 获取图像消息并保存到本地文件 ***img_[msgid].jpg*** , `msgid` 为消息id(Web微信数据) |
 | `get_voice(msgid)` | 获取语音消息并保存到本地文件 ***voice_[msgid].mp3*** , `msgid` 为消息id(Web微信数据) |
