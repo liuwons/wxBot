@@ -75,6 +75,7 @@ class WXBot:
         self.public_list = []  # 公众账号列表
         self.group_list = []  # 群聊列表
         self.special_list = []  # 特殊账号列表
+        self.encry_chat_room_id_list = []  # 存储群聊的EncryChatRoomId，获取群内成员头像时需要用到
 
     @staticmethod
     def to_unicode(string, encoding='utf-8'):
@@ -134,14 +135,13 @@ class WXBot:
                 self.contact_list.append(contact)
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'contact', 'info': contact}
 
-        self.group_members = self.batch_get_group_members()
+        self.batch_get_group_members()
 
         for group in self.group_members:
             for member in self.group_members[group]:
                 if member['UserName'] not in self.account_info:
-                    self.account_info['group_member'][member['UserName']] = {'type': 'group_member',
-                                                                             'info': member,
-                                                                             'group': group}
+                    self.account_info['group_member'][member['UserName']] = \
+                        {'type': 'group_member', 'info': member, 'group': group}
 
         if self.DEBUG:
             with open('contact_list.json', 'w') as f:
@@ -172,11 +172,14 @@ class WXBot:
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
         group_members = {}
+        encry_chat_room_id = {}
         for group in dic['ContactList']:
             gid = group['UserName']
             members = group['MemberList']
             group_members[gid] = members
-        return group_members
+            encry_chat_room_id[gid] = group['EncryChatRoomId']
+        self.group_members = group_members
+        self.encry_chat_room_id_list = encry_chat_room_id
 
     def get_group_member_name(self, gid, uid):
         """
@@ -632,8 +635,7 @@ class WXBot:
     def send_msg_by_uid(self, word, dst='filehelper'):
         url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % self.pass_ticket
         msg_id = str(int(time.time() * 1000)) + str(random.random())[:5].replace('.', '')
-        if type(word) == 'str':
-            word = word.decode('utf-8')
+        word = self.to_unicode(word)
         params = {
             'BaseRequest': self.base_request,
             'Msg': {
@@ -656,7 +658,8 @@ class WXBot:
 
     def get_user_id(self, name):
         if name == '':
-            return ''
+            return None
+        name = self.to_unicode(name)
         for contact in self.contact_list:
             if 'RemarkName' in contact and contact['RemarkName'] == name:
                 return contact['UserName']
@@ -668,7 +671,7 @@ class WXBot:
 
     def send_msg(self, name, word, isfile=False):
         uid = self.get_user_id(name)
-        if uid:
+        if uid is not None:
             if isfile:
                 with open(word, 'r') as f:
                     result = True
@@ -682,6 +685,7 @@ class WXBot:
                         time.sleep(1)
                     return result
             else:
+                word = self.to_unicode(word)
                 if self.send_msg_by_uid(word, uid):
                     return True
                 else:
@@ -923,20 +927,32 @@ class WXBot:
                                           for keyVal in self.sync_key['List']])
         return dic
 
-    def get_icon(self, uid):
-        url = self.base_uri + '/webwxgeticon?username=%s&skey=%s' % (uid, self.skey)
+    def get_icon(self, uid, gid=None):
+        """
+        获取联系人或者群聊成员头像
+        :param uid: 联系人id
+        :param gid: 群id，如果为非None获取群中成员头像，如果为None则获取联系人头像
+        """
+        if gid is None:
+            url = self.base_uri + '/webwxgeticon?username=%s&skey=%s' % (uid, self.skey)
+        else:
+            url = self.base_uri + '/webwxgeticon?username=%s&skey=%s&chatroomid=%s' % (uid, self.skey, self.encry_chat_room_id_list[gid])
         r = self.session.get(url)
         data = r.content
-        fn = 'img_' + uid + '.jpg'
+        fn = 'icon_' + uid + '.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
         return fn
 
     def get_head_img(self, uid):
+        """
+        获取群头像
+        :param uid: 群uid
+        """
         url = self.base_uri + '/webwxgetheadimg?username=%s&skey=%s' % (uid, self.skey)
         r = self.session.get(url)
         data = r.content
-        fn = 'img_' + uid + '.jpg'
+        fn = 'head_' + uid + '.jpg'
         with open(fn, 'wb') as f:
             f.write(data)
         return fn
@@ -945,6 +961,11 @@ class WXBot:
         return self.base_uri + '/webwxgetmsgimg?MsgID=%s&skey=%s' % (msgid, self.skey)
 
     def get_msg_img(self, msgid):
+        """
+        获取图片消息，下载图片到本地
+        :param msgid: 消息id
+        :return: 保存的本地图片文件路径
+        """
         url = self.base_uri + '/webwxgetmsgimg?MsgID=%s&skey=%s' % (msgid, self.skey)
         r = self.session.get(url)
         data = r.content
@@ -957,6 +978,11 @@ class WXBot:
         return self.base_uri + '/webwxgetvoice?msgid=%s&skey=%s' % (msgid, self.skey)
 
     def get_voice(self, msgid):
+        """
+        获取语音消息，下载语音到本地
+        :param msgid: 语音消息id
+        :return: 保存的本地语音文件路径
+        """
         url = self.base_uri + '/webwxgetvoice?msgid=%s&skey=%s' % (msgid, self.skey)
         r = self.session.get(url)
         data = r.content
