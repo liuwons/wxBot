@@ -620,7 +620,7 @@ class WXBot:
 
     def login(self):
         if len(self.redirect_uri) < 4:
-            print '[ERROR] Login failed due to network problem, please try again.'
+            print ('[ERROR] Login failed due to network problem, please try again.')
             return False
         r = self.session.get(self.redirect_uri)
         r.encoding = 'utf-8'
