@@ -609,25 +609,42 @@ class WXBot:
         self.test_sync_check()
         while True:
             check_time = time.time()
-            [retcode, selector] = self.sync_check()
-            if retcode == '1100':  # 从微信客户端上登出
-                break
-            elif retcode == '1101':  # 从其它设备上登了网页微信
-                break
-            elif retcode == '0':
-                if selector == '2':  # 有新消息
-                    r = self.sync()
-                    if r is not None:
-                        self.handle_msg(r)
-                elif selector == '7':  # 在手机上操作了微信
-                    r = self.sync()
-                    if r is not None:
-                        self.handle_msg(r)
-                elif selector == '0':  # 无事件
-                    pass
+            try:
+                [retcode, selector] = self.sync_check()
+                # print '[DEBUG] sync_check:', retcode, selector
+                if retcode == '1100':  # 从微信客户端上登出
+                    break
+                elif retcode == '1101':  # 从其它设备上登了网页微信
+                    break
+                elif retcode == '0':
+                    if selector == '2':  # 有新消息
+                        r = self.sync()
+                        if r is not None:
+                            self.handle_msg(r)
+                    elif selector == '3':  # 未知
+                        r = self.sync()
+                        if r is not None:
+                            self.handle_msg(r)
+                    elif selector == '6':  # 可能是红包
+                        r = self.sync()
+                        if r is not None:
+                            self.handle_msg(r)
+                    elif selector == '7':  # 在手机上操作了微信
+                        r = self.sync()
+                        if r is not None:
+                            self.handle_msg(r)
+                    elif selector == '0':  # 无事件
+                        pass
+                    else:
+                        print '[DEBUG] sync_check:', retcode, selector
+                        r = self.sync()
+                        if r is not None:
+                            self.handle_msg(r)
                 else:
-                    pass
-            self.schedule()
+                    print '[DEBUG] sync_check:', retcode, selector
+                self.schedule()
+            except:
+                print '[ERROR] Except in proc_msg'
             check_time = time.time() - check_time
             if check_time < 0.8:
                 time.sleep(1 - check_time)
@@ -898,14 +915,14 @@ class WXBot:
         url = 'https://' + self.sync_host + '.weixin.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
         try:
             r = self.session.get(url, timeout=60)
-        except (ConnectionError, ReadTimeout):
+            r.encoding = 'utf-8'
+            data = r.text
+            pm = re.search(r'window.synccheck=\{retcode:"(\d+)",selector:"(\d+)"\}', data)
+            retcode = pm.group(1)
+            selector = pm.group(2)
+            return [retcode, selector]
+        except:
             return [-1, -1]
-        r.encoding = 'utf-8'
-        data = r.text
-        pm = re.search(r'window.synccheck=\{retcode:"(\d+)",selector:"(\d+)"\}', data)
-        retcode = pm.group(1)
-        selector = pm.group(2)
-        return [retcode, selector]
 
     def sync(self):
         url = self.base_uri + '/webwxsync?sid=%s&skey=%s&lang=en_US&pass_ticket=%s' \
@@ -917,15 +934,15 @@ class WXBot:
         }
         try:
             r = self.session.post(url, data=json.dumps(params), timeout=60)
-        except (ConnectionError, ReadTimeout):
+            r.encoding = 'utf-8'
+            dic = json.loads(r.text)
+            if dic['BaseResponse']['Ret'] == 0:
+                self.sync_key = dic['SyncKey']
+                self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
+                                              for keyVal in self.sync_key['List']])
+            return dic
+        except:
             return None
-        r.encoding = 'utf-8'
-        dic = json.loads(r.text)
-        if dic['BaseResponse']['Ret'] == 0:
-            self.sync_key = dic['SyncKey']
-            self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
-                                          for keyVal in self.sync_key['List']])
-        return dic
 
     def get_icon(self, uid, gid=None):
         """
