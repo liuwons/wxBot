@@ -12,6 +12,7 @@ import urllib
 import time
 import re
 import random
+import mimetypes
 from requests.exceptions import ConnectionError, ReadTimeout
 import HTMLParser
 
@@ -76,6 +77,8 @@ class WXBot:
         self.group_list = []  # 群聊列表
         self.special_list = []  # 特殊账号列表
         self.encry_chat_room_id_list = []  # 存储群聊的EncryChatRoomId，获取群内成员头像时需要用到
+
+        self.file_index = 0  # 发送文件消息时用到的的文件序号
 
     @staticmethod
     def to_unicode(string, encoding='utf-8'):
@@ -612,7 +615,9 @@ class WXBot:
             try:
                 [retcode, selector] = self.sync_check()
                 # print '[DEBUG] sync_check:', retcode, selector
-                if retcode == '1100':  # 从微信客户端上登出
+                if retcode == '-1' and selector == '-1':
+                    pass
+                elif retcode == '1100':  # 从微信客户端上登出
                     break
                 elif retcode == '1101':  # 从其它设备上登了网页微信
                     break
@@ -643,7 +648,7 @@ class WXBot:
                 else:
                     print '[DEBUG] sync_check:', retcode, selector
                 self.schedule()
-            except:
+            except Exception,e:
                 print '[ERROR] Except in proc_msg'
             check_time = time.time() - check_time
             if check_time < 0.8:
@@ -922,7 +927,7 @@ class WXBot:
             selector = pm.group(2)
             return [retcode, selector]
         except:
-            return [-1, -1]
+            return ['-1', '-1']
 
     def sync(self):
         url = self.base_uri + '/webwxsync?sid=%s&skey=%s&lang=en_US&pass_ticket=%s' \
@@ -943,6 +948,93 @@ class WXBot:
             return dic
         except:
             return None
+
+    def upload_media(self, fpath, is_img=False):
+        if not os.path.exists(fpath):
+            print '[ERROR] File not exists.'
+            return None
+        url = 'https://file.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
+        flen = str(os.path.getsize(fpath))
+        ftype = mimetypes.guess_type(fpath)[0] or 'application/octet-stream'
+        files = {
+                'id': (None, 'WU_FILE_%s' % str(self.file_index)),
+                'name': (None, os.path.basename(fpath)),
+                'type': (None, ftype),
+                'lastModifiedDate': (None, time.strftime('%m/%d/%Y, %H:%M:%S GMT+0800 (CST)')),
+                'size': (None, flen),
+                'mediatype': (None, 'pic' if is_img else 'doc'),
+                'uploadmediarequest': (None, json.dumps({
+                    'BaseRequest': self.base_request,
+                    'ClientMediaId': int(time.time()),
+                    'TotalLen': flen,
+                    'StartPos': 0,
+                    'DataLen': flen,
+                    'MediaType': 4,
+                    })),
+                'webwx_data_ticket': (None, self.session.cookies['webwx_data_ticket']),
+                'pass_ticket': (None, self.pass_ticket),
+                'filename': (os.path.basename(fpath), ftype, open(fpath, 'rb')),
+                }
+        self.file_index += 1
+        try:
+            r = self.session.post(url, files=files)
+            mid = json.loads(r.text)['MediaId']
+            return mid
+        except Exception,e:
+            return None
+
+    def send_file_msg_by_uid(self, fpath, uid):
+        mid = self.upload_media(fpath)
+        if mid is None or not mid:
+            return False
+        url = self.base_uri + '/webwxsendappmsg?fun=async&f=json&pass_ticket=' + self.pass_ticket
+        msg_id = str(int(time.time() * 1000)) + str(random.random())[:5].replace('.', '')
+        data = {
+                'BaseRequest': self.base_request,
+                'Msg': {
+                    'Type': 6,
+                    'Content': ("<appmsg appid='wxeb7ec651dd0aefa9' sdkver=''><title>%s</title><des></des><action></action><type>6</type><content></content><url></url><lowurl></lowurl><appattach><totallen>%s</totallen><attachid>%s</attachid><fileext>%s</fileext></appattach><extinfo></extinfo></appmsg>" % (os.path.basename(fpath).encode('utf-8'), str(os.path.getsize(fpath)), mid, fpath.split('.')[-1])).encode('utf8'),
+                    'FromUserName': self.my_account['UserName'],
+                    'ToUserName': uid,
+                    'LocalID': msg_id,
+                    'ClientMsgId': msg_id, }, }
+        try:
+            r = self.session.post(url, data=json.dumps(data))
+            res = json.loads(r.text)
+            if res['BaseResponse']['Ret'] == 0:
+                return True
+            else:
+                return False
+        except Exception,e:
+            return False
+
+    def send_img_msg_by_uid(self, fpath, uid):
+        mid = self.upload_media(fpath, is_img=True)
+        if mid is None:
+            return False
+        url = self.base_uri + '/webwxsendmsgimg?fun=async&f=json'
+        data = {
+                'BaseRequest': self.base_request,
+                'Msg': {
+                    'Type': 3,
+                    'MediaId': mid,
+                    'FromUserName': self.my_account['UserName'],
+                    'ToUserName': uid,
+                    'LocalID': str(time.time() * 1e7),
+                    'ClientMsgId': str(time.time() * 1e7), }, }
+        if fpath[-4:] == '.gif':
+            url = self.base_uri + '/webwxsendemoticon?fun=sys'
+            data['Msg']['Type'] = 47
+            data['Msg']['EmojiFlag'] = 2
+        try:
+            r = self.session.post(url, data=json.dumps(data))
+            res = json.loads(r.text)
+            if res['BaseResponse']['Ret'] == 0:
+                return True
+            else:
+                return False
+        except Exception,e:
+            return False
 
     def get_icon(self, uid, gid=None):
         """
