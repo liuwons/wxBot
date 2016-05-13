@@ -3,6 +3,7 @@
 
 import os
 import sys
+import traceback
 import webbrowser
 import pyqrcode
 import requests
@@ -12,6 +13,7 @@ import urllib
 import time
 import re
 import random
+
 from requests.exceptions import ConnectionError, ReadTimeout
 import HTMLParser
 
@@ -21,10 +23,10 @@ SCANED  = '201'
 TIMEOUT = '408'
 
 
-def show_image(file):
+def show_image(file_path):
     """
     跨平台显示图片文件
-    :param file: 图片文件路径
+    :param file_path: 图片文件路径
     """
     if sys.version_info >= (3, 3):
         from shlex import quote
@@ -32,10 +34,10 @@ def show_image(file):
         from pipes import quote
 
     if sys.platform == "darwin":
-        command = "open -a /Applications/Preview.app %s&" % quote(file)
+        command = "open -a /Applications/Preview.app %s&" % quote(file_path)
         os.system(command)
     else:
-        webbrowser.open(file)
+        webbrowser.open(file_path)
 
 class SafeSession(requests.Session):
     def request(self, method, url, params=None, data=None, headers=None, cookies=None, files=None, auth=None,
@@ -46,7 +48,8 @@ class SafeSession(requests.Session):
                 return super(SafeSession, self).request(method, url, params, data, headers, cookies, files, auth,
                                                         timeout,
                                                         allow_redirects, proxies, hooks, stream, verify, cert, json)
-            except:
+            except Exception as e:
+                print e.message,traceback.format_exc()
                 continue
 
 
@@ -227,13 +230,6 @@ class WXBot:
         else:
             return None
 
-    def get_group_member_info(self, uid, gid):
-        if gid not in self.group_members:
-            return None
-        for member in self.group_members[gid]:
-            if member['UserName'] == uid:
-                return {'type': 'group_member', 'info': member}
-        return None
 
     def get_contact_name(self, uid):
         info = self.get_contact_info(uid)
@@ -269,22 +265,6 @@ class WXBot:
         else:
             return name
 
-    def get_group_member_name(self, uid, gid):
-        info = self.get_group_member_info(uid, gid)
-        if info is None:
-            return None
-        info = info['info']
-        name = {}
-        if 'RemarkName' in info and info['RemarkName']:
-            name['remark_name'] = info['RemarkName']
-        if 'NickName' in info and info['NickName']:
-            name['nickname'] = info['NickName']
-        if 'DisplayName' in info and info['DisplayName']:
-            name['display_name'] = info['DisplayName']
-        if len(name) == 0:
-            return None
-        else:
-            return name
 
     @staticmethod
     def get_contact_prefer_name(name):
@@ -505,7 +485,6 @@ class WXBot:
                 print '    %s[Animation] %s' % (msg_prefix, msg_content['data'])
         elif mtype == 49:
             msg_content['type'] = 7
-            app_msg_type = ''
             if msg['AppMsgType'] == 3:
                 app_msg_type = 'music'
             elif msg['AppMsgType'] == 5:
@@ -570,7 +549,6 @@ class WXBot:
         :param r: 原始微信消息
         """
         for msg in r['AddMsgList']:
-            msg_type_id = 99
             user = {'id': msg['FromUserName'], 'name': 'unknown'}
             if msg['MsgType'] == 51:  # init message
                 msg_type_id = 0
