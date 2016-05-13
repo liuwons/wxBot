@@ -37,6 +37,18 @@ def show_image(file):
     else:
         webbrowser.open(file)
 
+class SafeSession(requests.Session):
+    def request(self, method, url, params=None, data=None, headers=None, cookies=None, files=None, auth=None,
+                timeout=None, allow_redirects=True, proxies=None, hooks=None, stream=None, verify=None, cert=None,
+                json=None):
+        for i in range(3):
+            try:
+                return super(SafeSession, self).request(method, url, params, data, headers, cookies, files, auth,
+                                                        timeout,
+                                                        allow_redirects, proxies, hooks, stream, verify, cert, json)
+            except:
+                continue
+
 
 class WXBot:
     """WXBot功能类"""
@@ -56,7 +68,7 @@ class WXBot:
         self.sync_key = []
         self.sync_host = ''
 
-        self.session = requests.Session()
+        self.session = SafeSession()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
         self.conf = {'qr': 'png'}
 
@@ -684,6 +696,14 @@ class WXBot:
                 return contact['UserName']
             elif 'DisplayName' in contact and contact['DisplayName'] == name:
                 return contact['UserName']
+        for group in self.group_list:
+            if 'RemarkName' in group and group['RemarkName'] == name:
+                return group['UserName']
+            if 'NickName' in group and group['NickName'] == name:
+                return group['UserName']
+            if 'DisplayName' in group and group['DisplayName'] == name:
+                return group['UserName']
+
         return ''
 
     def send_msg(self, name, word, isfile=False):
