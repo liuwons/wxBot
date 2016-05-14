@@ -3,7 +3,6 @@
 
 import os
 import sys
-import traceback
 import webbrowser
 import pyqrcode
 import requests
@@ -40,17 +39,13 @@ def show_image(file_path):
         webbrowser.open(file_path)
 
 class SafeSession(requests.Session):
-    def request(self, method, url, params=None, data=None, headers=None, cookies=None, files=None, auth=None,
-                timeout=None, allow_redirects=True, proxies=None, hooks=None, stream=None, verify=None, cert=None,
-                json=None):
+    def request(self, *args, **kwargs):
         for i in range(3):
             try:
-                return super(SafeSession, self).request(method, url, params, data, headers, cookies, files, auth,
-                                                        timeout,
-                                                        allow_redirects, proxies, hooks, stream, verify, cert, json)
-            except Exception as e:
-                print e.message,traceback.format_exc()
-                continue
+                return super(SafeSession, self).request(*args, **kwargs)
+            except:
+                pass
+        return super(SafeSession, self).request(*args, **kwargs)
 
 
 class WXBot:
