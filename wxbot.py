@@ -13,7 +13,7 @@ import urllib
 import time
 import re
 import random
-
+from traceback import format_exc
 from requests.exceptions import ConnectionError, ReadTimeout
 import HTMLParser
 
@@ -635,6 +635,7 @@ class WXBot:
                 self.schedule()
             except:
                 print '[ERROR] Except in proc_msg'
+                print format_exc()
             check_time = time.time() - check_time
             if check_time < 0.8:
                 time.sleep(1 - check_time)
