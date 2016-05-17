@@ -140,7 +140,6 @@ class WXBot:
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'group', 'info': contact}
             elif contact['UserName'] == self.my_account['UserName']:  # 自己
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'self', 'info': contact}
-                pass
             else:
                 self.contact_list.append(contact)
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'contact', 'info': contact}
@@ -243,22 +242,6 @@ class WXBot:
         else:
             return name
 
-    def get_group_member_name(self, uid):
-        info = self.get_group_member_info(uid)
-        if info is None:
-            return None
-        info = info['info']
-        name = {}
-        if 'RemarkName' in info and info['RemarkName']:
-            name['remark_name'] = info['RemarkName']
-        if 'NickName' in info and info['NickName']:
-            name['nickname'] = info['NickName']
-        if 'DisplayName' in info and info['DisplayName']:
-            name['display_name'] = info['DisplayName']
-        if len(name) == 0:
-            return None
-        else:
-            return name
 
 
     @staticmethod
