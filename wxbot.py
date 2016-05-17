@@ -482,7 +482,7 @@ class WXBot:
                                    'desc': self.search_content('des', content, 'xml'),
                                    'url': msg['Url'],
                                    'from': self.search_content('appname', content, 'xml'),
-                                   'content':msg.get('content')#有的公众号会发一次性3 4条链接一个大图,如果只url那只能获取第一条,content里面有所有的链接
+                                   'content':msg.get('Content')#有的公众号会发一次性3 4条链接一个大图,如果只url那只能获取第一条,content里面有所有的链接
                                    }
             if self.DEBUG:
                 print '    %s[Share] %s' % (msg_prefix, app_msg_type)
