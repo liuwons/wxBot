@@ -3,6 +3,7 @@
 
 import os
 import sys
+import traceback
 import webbrowser
 import pyqrcode
 import requests
@@ -39,13 +40,17 @@ def show_image(file_path):
         webbrowser.open(file_path)
 
 class SafeSession(requests.Session):
-    def request(self, *args, **kwargs):
+    def request(self, method, url, params=None, data=None, headers=None, cookies=None, files=None, auth=None,
+                timeout=None, allow_redirects=True, proxies=None, hooks=None, stream=None, verify=None, cert=None,
+                json=None):
         for i in range(3):
             try:
-                return super(SafeSession, self).request(*args, **kwargs)
-            except:
-                pass
-        return super(SafeSession, self).request(*args, **kwargs)
+                return super(SafeSession, self).request(method, url, params, data, headers, cookies, files, auth,
+                                                        timeout,
+                                                        allow_redirects, proxies, hooks, stream, verify, cert, json)
+            except Exception as e:
+                print e.message,traceback.format_exc()
+                continue
 
 
 class WXBot:
@@ -140,7 +145,6 @@ class WXBot:
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'group', 'info': contact}
             elif contact['UserName'] == self.my_account['UserName']:  # 自己
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'self', 'info': contact}
-                pass
             else:
                 self.contact_list.append(contact)
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'contact', 'info': contact}
@@ -243,22 +247,7 @@ class WXBot:
         else:
             return name
 
-    def get_group_member_name(self, uid):
-        info = self.get_group_member_info(uid)
-        if info is None:
-            return None
-        info = info['info']
-        name = {}
-        if 'RemarkName' in info and info['RemarkName']:
-            name['remark_name'] = info['RemarkName']
-        if 'NickName' in info and info['NickName']:
-            name['nickname'] = info['NickName']
-        if 'DisplayName' in info and info['DisplayName']:
-            name['display_name'] = info['DisplayName']
-        if len(name) == 0:
-            return None
-        else:
-            return name
+
 
 
     @staticmethod
@@ -492,7 +481,9 @@ class WXBot:
                                    'title': msg['FileName'],
                                    'desc': self.search_content('des', content, 'xml'),
                                    'url': msg['Url'],
-                                   'from': self.search_content('appname', content, 'xml')}
+                                   'from': self.search_content('appname', content, 'xml'),
+                                   'content':msg.get('Content')#有的公众号会发一次性3 4条链接一个大图,如果只url那只能获取第一条,content里面有所有的链接
+                                   }
             if self.DEBUG:
                 print '    %s[Share] %s' % (msg_prefix, app_msg_type)
                 print '    --------------------------'
@@ -500,6 +491,7 @@ class WXBot:
                 print '    | desc: %s' % self.search_content('des', content, 'xml')
                 print '    | link: %s' % msg['Url']
                 print '    | from: %s' % self.search_content('appname', content, 'xml')
+                print '    | content: %s' % msg.get('content')[:20]
                 print '    --------------------------'
 
         elif mtype == 62:
