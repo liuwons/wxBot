@@ -91,6 +91,8 @@ class WXBot:
         self.group_list = []  # 群聊列表
         self.special_list = []  # 特殊账号列表
         self.encry_chat_room_id_list = []  # 存储群聊的EncryChatRoomId，获取群内成员头像时需要用到
+        self.targetGroup = {} # 目标群
+        self.targetGroupPinyin = ''
 
     @staticmethod
     def to_unicode(string, encoding='utf-8'):
@@ -132,6 +134,7 @@ class WXBot:
         self.public_list = []
         self.special_list = []
         self.group_list = []
+        self.targetGroup = {}
 
         for contact in self.member_list:
             if contact['VerifyFlag'] & 8 != 0:  # 公众号
@@ -141,6 +144,10 @@ class WXBot:
                 self.special_list.append(contact)
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'special', 'info': contact}
             elif contact['UserName'].find('@@') != -1:  # 群聊
+                if contact['PYQuanPin'] == self.targetGroupPinyin: #根据群名称找到群信息
+                    print('Your target group info')
+                    print(contact)
+                    self.targetGroup = contact
                 self.group_list.append(contact)
                 self.account_info['normal_member'][contact['UserName']] = {'type': 'group', 'info': contact}
             elif contact['UserName'] == self.my_account['UserName']:  # 自己
@@ -646,6 +653,26 @@ class WXBot:
         }
         headers = {'content-type': 'application/json; charset=UTF-8'}
         data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        try:
+            r = self.session.post(url, data=data, headers=headers)
+        except (ConnectionError, ReadTimeout):
+            return False
+        dic = r.json()
+        return dic['BaseResponse']['Ret'] == 0
+
+    def send_invite_by_uid(self, dst='filehelper'):
+        if dst.find('@@') != -1:
+            return
+
+        url = self.base_uri + '/webwxupdatechatroom?fun=invitemember&lang=zh_CN'
+        params = {
+            'InviteMemberList':dst,
+            'ChatRoomName':self.targetGroup['UserName'],
+            'BaseRequest': self.base_request
+        }
+        headers = {'content-type':'application/json; charset=UTF-8'}
+        data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        print(data)
         try:
             r = self.session.post(url, data=data, headers=headers)
         except (ConnectionError, ReadTimeout):

@@ -6,6 +6,29 @@ import ConfigParser
 import json
 
 
+class TargetGroupInvite(WXBot):
+    """docstring for ClassName"""
+    def __init__(self):
+        WXBot.__init__(self)
+
+        self.targetGroupPinyin = ''
+        try:
+            conf = ConfigParser.ConfigParser()
+            conf = read('targetGroup.ini')
+            self.targetGroupPinyin = conf.get('target', 'key')
+        except Exception:
+            pass
+        
+    def handle_msg_all(self, msg):
+        #Fliter message
+        if msg['msg_type_id'] != 4 and msg['content']['type'] != 0:
+            return
+        if msg['user']['id'].find('@@') != -1:
+            return
+        
+        self.send_invite_by_uid(msg['user']['id'])
+        
+
 class TulingWXBot(WXBot):
     def __init__(self):
         WXBot.__init__(self)
@@ -95,10 +118,12 @@ class TulingWXBot(WXBot):
 
 
 def main():
-    bot = TulingWXBot()
-    bot.DEBUG = True
-    bot.conf['qr'] = 'png'
+    #bot = TulingWXBot()
+    #bot.DEBUG = True
+    #bot.conf['qr'] = 'png'
 
+    #bot.run()
+    bot = TargetGroupInvite()
     bot.run()
 
 
