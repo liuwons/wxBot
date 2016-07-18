@@ -953,7 +953,7 @@ class WXBot:
         if not os.path.exists(fpath):
             print '[ERROR] File not exists.'
             return None
-        url = 'https://file.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
+        url = 'https://file2.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
         flen = str(os.path.getsize(fpath))
         ftype = mimetypes.guess_type(fpath)[0] or 'application/octet-stream'
         files = {
@@ -973,7 +973,7 @@ class WXBot:
                     })),
                 'webwx_data_ticket': (None, self.session.cookies['webwx_data_ticket']),
                 'pass_ticket': (None, self.pass_ticket),
-                'filename': (os.path.basename(fpath), ftype, open(fpath, 'rb')),
+                'filename': (os.path.basename(fpath), open(fpath, 'rb'),ftype.split('/')[1]),
                 }
         self.file_index += 1
         try:
