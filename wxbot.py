@@ -953,7 +953,8 @@ class WXBot:
         if not os.path.exists(fpath):
             print '[ERROR] File not exists.'
             return None
-        url = 'https://file2.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
+        url_1 = 'https://file.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
+        url_2 = 'https://file2.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
         flen = str(os.path.getsize(fpath))
         ftype = mimetypes.guess_type(fpath)[0] or 'application/octet-stream'
         files = {
@@ -977,7 +978,13 @@ class WXBot:
                 }
         self.file_index += 1
         try:
-            r = self.session.post(url, files=files)
+            r = self.session.post(url_1, files=files)
+            if json.loads(r.text)['BaseResponse']['Ret'] != 0:
+                # 当file返回值不为0时则为上传失败，尝试第二服务器上传
+                r = self.session.post(url_2, files=files)
+            if json.loads(r.text)['BaseResponse']['Ret'] != 0:
+                print '[ERROR] Upload media failure.'
+                return None
             mid = json.loads(r.text)['MediaId']
             return mid
         except Exception,e:
