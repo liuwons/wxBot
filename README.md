@@ -26,6 +26,11 @@
   - [ ] 红包
   - [ ] 转账
 
+- [x] 消息发送
+  - [x] 文本
+  - [x] 图片
+  - [x] 文件
+
 
 
 Web微信协议参考资料：
@@ -58,7 +63,7 @@ pip install Pillow
 
 ### 2.1 代码
 
-以下的代码对所有来自好友的文本消息回复 *hi* ， 并不断向好友 *tb* 发送 *schedule* 。
+以下的代码对所有来自好友的文本消息回复文本消息 *hi* 、图片消息 *1.png* 以及文件消息 *1.png* ， 并不断向好友 *tb* 发送文本 *schedule* 。
 
 `handle_msg_all` 函数用于处理收到的每条消息，而 `schedule` 函数可以做一些任务性的工作(例如不断向好友推送信息或者一些定时任务)。
 
@@ -73,6 +78,8 @@ class MyWXBot(WXBot):
     def handle_msg_all(self, msg):
         if msg['msg_type_id'] == 4 and msg['content']['type'] == 0:
             self.send_msg_by_uid(u'hi', msg['user']['id'])
+            self.send_img_msg_by_uid("img/1.png", msg['user']['id'])
+            self.send_file_msg_by_uid("img/1.png", msg['user']['id'])
 
     def schedule(self):
         self.send_msg(u'tb', u'schedule')
@@ -194,6 +201,9 @@ python test.py
 | `get_msg_img(msgid)` | 获取图像消息并保存到本地文件 ***img_[msgid].jpg*** , `msgid` 为消息id(Web微信数据) |
 | `get_voice(msgid)` | 获取语音消息并保存到本地文件 ***voice_[msgid].mp3*** , `msgid` 为消息id(Web微信数据) |
 | `get_contact_name(uid)` | 获取微信id对应的名称，返回一个可能包含 `remark_name` (备注名), `nickname` (昵称), `display_name` (群名称)的字典|
+| `send_msg_by_uid(word, dst)` | 向好友发送消息，`word` 为消息字符串，`dst` 为好友用户id(Web微信数据) |
+| `send_img_msg_by_uid(fpath, dst)` | 向好友发送图片消息，`fpath` 为本地图片文件路径，`dst` 为好友用户id(Web微信数据) |
+| `send_file_msg_by_uid(fpath, dst)` | 向好友发送文件消息，`fpath` 为本地文件路径，`dst` 为好友用户id(Web微信数据) |
 | `send_msg_by_uid(word, dst)` | 向好友发送消息，`word` 为消息字符串，`dst` 为好友用户id(Web微信数据) |
 | `send_msg(name, word, isfile)` | 向好友发送消息，`name` 为好友的备注名或者好友微信号， `isfile`为 `False` 时 `word` 为消息，`isfile` 为 `True` 时 `word` 为文件路径(此时向好友发送文件里的每一行)，此方法在有重名好友时会有问题，因此更推荐使用 `send_msg_by_uid(word, dst)` |
 | `is_contact(uid)` | 判断id为 `uid` 的账号是否是本帐号的好友，返回 `True` (是)或 `False` (不是) |
