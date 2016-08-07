@@ -38,7 +38,7 @@ def show_image(file_path):
         command = "open -a /Applications/Preview.app %s&" % quote(file_path)
         os.system(command)
     else:
-        webbrowser.open(file_path)
+        webbrowser.open(os.path.join(os.getcwd(),'temp',file_path))
 
 
 class SafeSession(requests.Session):
@@ -73,6 +73,11 @@ class WXBot:
         self.sync_key = []
         self.sync_host = ''
 
+        #文件缓存目录
+        self.temp_pwd  =  os.path.join(os.getcwd(),'temp')
+        if os.path.exists(self.temp_pwd) == False:
+            os.makedirs(self.temp_pwd)
+        
         self.session = SafeSession()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
         self.conf = {'qr': 'png'}
@@ -118,7 +123,7 @@ class WXBot:
         r = self.session.post(url, data='{}')
         r.encoding = 'utf-8'
         if self.DEBUG:
-            with open('contacts.json', 'w') as f:
+            with open(os.path.join(self.temp_pwd,'contacts.json'), 'w') as f:
                 f.write(r.text.encode('utf-8'))
         dic = json.loads(r.text)
         self.member_list = dic['MemberList']
@@ -162,19 +167,19 @@ class WXBot:
                         {'type': 'group_member', 'info': member, 'group': group}
 
         if self.DEBUG:
-            with open('contact_list.json', 'w') as f:
+            with open(os.path.join(self.temp_pwd,'contact_list.json'), 'w') as f:
                 f.write(json.dumps(self.contact_list))
-            with open('special_list.json', 'w') as f:
+            with open(os.path.join(self.temp_pwd,'special_list.json'), 'w') as f:
                 f.write(json.dumps(self.special_list))
-            with open('group_list.json', 'w') as f:
+            with open(os.path.join(self.temp_pwd,'group_list.json'), 'w') as f:
                 f.write(json.dumps(self.group_list))
-            with open('public_list.json', 'w') as f:
+            with open(os.path.join(self.temp_pwd,'public_list.json'), 'w') as f:
                 f.write(json.dumps(self.public_list))
-            with open('member_list.json', 'w') as f:
+            with open(os.path.join(self.temp_pwd,'member_list.json'), 'w') as f:
                 f.write(json.dumps(self.member_list))
-            with open('group_users.json', 'w') as f:
+            with open(os.path.join(self.temp_pwd,'group_users.json'), 'w') as f:
                 f.write(json.dumps(self.group_members))
-            with open('account_info.json', 'w') as f:
+            with open(os.path.join(self.temp_pwd,'account_info.json'), 'w') as f:
                 f.write(json.dumps(self.account_info))
         return True
 
@@ -673,7 +678,7 @@ class WXBot:
                     })),
                 'webwx_data_ticket': (None, self.session.cookies['webwx_data_ticket']),
                 'pass_ticket': (None, self.pass_ticket),
-                'filename': (os.path.basename(fpath), open(fpath, 'rb'),ftype.split('/')[1]),
+                'filename': (os.path.basename(os.path.join(self.temp_pwd,fpath)), open(os.path.join(self.temp_pwd,fpath), 'rb'),ftype.split('/')[1]),
                 }
         self.file_index += 1
         try:
@@ -767,7 +772,7 @@ class WXBot:
         uid = self.get_user_id(name)
         if uid is not None:
             if isfile:
-                with open(word, 'r') as f:
+                with open(os.path.join(self.temp_pwd,word), 'r') as f:
                     result = True
                     for line in f.readlines():
                         line = line.replace('\n', '')
@@ -803,7 +808,7 @@ class WXBot:
 
     def run(self):
         self.get_uuid()
-        self.gen_qr_code('qr.png')
+        self.gen_qr_code(os.path.join(self.temp_pwd,'wxqr.png'))
         print '[INFO] Please use WeChat to scan the QR code .'
 
         result = self.wait4login()
@@ -1035,7 +1040,7 @@ class WXBot:
         r = self.session.get(url)
         data = r.content
         fn = 'icon_' + uid + '.jpg'
-        with open(fn, 'wb') as f:
+        with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
 
@@ -1048,7 +1053,7 @@ class WXBot:
         r = self.session.get(url)
         data = r.content
         fn = 'head_' + uid + '.jpg'
-        with open(fn, 'wb') as f:
+        with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
 
@@ -1065,7 +1070,7 @@ class WXBot:
         r = self.session.get(url)
         data = r.content
         fn = 'img_' + msgid + '.jpg'
-        with open(fn, 'wb') as f:
+        with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
 
@@ -1082,6 +1087,6 @@ class WXBot:
         r = self.session.get(url)
         data = r.content
         fn = 'voice_' + msgid + '.mp3'
-        with open(fn, 'wb') as f:
+        with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
