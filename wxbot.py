@@ -77,7 +77,7 @@ class WXBot:
         self.temp_pwd  =  os.path.join(os.getcwd(),'temp')
         if os.path.exists(self.temp_pwd) == False:
             os.makedirs(self.temp_pwd)
-        
+
         self.session = SafeSession()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
         self.conf = {'qr': 'png'}
@@ -397,7 +397,7 @@ class WXBot:
             uid = uid[:-1]
             name = self.get_contact_prefer_name(self.get_contact_name(uid))
             if not name:
-                name = self.get_group_member_prefer_name(self.get_group_member_name(uid, msg['FromUserName']))
+                name = self.get_group_member_prefer_name(self.get_group_member_name(msg['FromUserName'], uid))
             if not name:
                 name = 'unknown'
             msg_content['user'] = {'id': uid, 'name': name}
