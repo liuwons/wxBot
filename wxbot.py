@@ -1093,6 +1093,7 @@ class WXBot:
     def set_remarkname(self,uid,remarkname):#设置联系人的备注名
         url = self.base_uri + '/webwxoplog?lang=zh_CN&pass_ticket=%s' \
                               % (self.pass_ticket)
+        remarkname = self.to_unicode(remarkname)
         params = {
             'BaseRequest': self.base_request,
             'CmdId': 2,
