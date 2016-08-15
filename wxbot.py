@@ -1090,3 +1090,19 @@ class WXBot:
         with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
+    def set_remarkname(self,uid,remarkname):#设置联系人的备注名
+        url = self.base_uri + '/webwxoplog?lang=zh_CN&pass_ticket=%s' \
+                              % (self.pass_ticket)
+        params = {
+            'BaseRequest': self.base_request,
+            'CmdId': 2,
+            'RemarkName': remarkname,
+            'UserName': uid
+        }
+        try:
+            r = self.session.post(url, data=json.dumps(params), timeout=60)
+            r.encoding = 'utf-8'
+            dic = json.loads(r.text)
+            return dic['BaseResponse']['ErrMsg']
+        except:
+            return None
