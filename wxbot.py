@@ -542,17 +542,16 @@ class WXBot:
             if msg['MsgType'] == 51:  # init message
                 msg_type_id = 0
                 user['name'] = 'system'
-            elif msg['MsgType'] == 37:# 有人加好友 ，37为加好友信息？
-                weixinhao=msg['Content']                
-                weixinhao=weixinhao[weixinhao.index('fromusername='):weixinhao.index('encryptusername')]
-                weixinhao=weixinhao[weixinhao.index('"')+1:weixinhao.rindex('"')]                
-                print u'[INFO] 请求加好友!'
-                print u'       昵称：' + msg['RecommendInfo']['NickName']
-                #print u'ID：' + msg['RecommendInfo']['UserName']
-                print u'       附加消息：'+msg['RecommendInfo']['Content']
-                #print u'Ticket：'+msg['RecommendInfo']['Ticket'] # Ticket添加好友时要用
-                print u'       微信号：'+weixinhao #未设置微信号的 腾讯会自动生成一段微信ID 但是无法通过搜索 搜索到此人
-                return
+            elif msg['MsgType'] == 37:  # friend request
+                pass
+                # content = msg['Content']
+                # username = content[content.index('fromusername='): content.index('encryptusername')]
+                # username = username[username.index('"') + 1: username.rindex('"')]
+                # print u'[Friend Request]'
+                # print u'       Nickname：' + msg['RecommendInfo']['NickName']
+                # print u'       附加消息：'+msg['RecommendInfo']['Content']
+                # # print u'Ticket：'+msg['RecommendInfo']['Ticket'] # Ticket添加好友时要用
+                # print u'       微信号：'+username #未设置微信号的 腾讯会自动生成一段微信ID 但是无法通过搜索 搜索到此人
             elif msg['FromUserName'] == self.my_account['UserName']:  # Self
                 msg_type_id = 1
                 user['name'] = 'self'
