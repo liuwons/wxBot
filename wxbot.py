@@ -448,6 +448,11 @@ class WXBot:
             if self.DEBUG:
                 voice = self.get_voice(msg_id)
                 print '    %s[Voice] %s' % (msg_prefix, voice)
+        elif mtype == 37:
+            msg_content['type'] = 37
+            msg_content['data'] = msg['RecommendInfo']
+            if self.DEBUG:
+                print '    %s[useradd] %s' % (msg_prefix,msg['RecommendInfo']['NickName'])
         elif mtype == 42:
             msg_content['type'] = 5
             info = msg['RecommendInfo']
@@ -543,6 +548,7 @@ class WXBot:
                 msg_type_id = 0
                 user['name'] = 'system'
             elif msg['MsgType'] == 37:  # friend request
+                msg_type_id = 37
                 pass
                 # content = msg['Content']
                 # username = content[content.index('fromusername='): content.index('encryptusername')]
@@ -639,6 +645,33 @@ class WXBot:
             if check_time < 0.8:
                 time.sleep(1 - check_time)
 
+    def apply_useradd_requests(self,RecommendInfo):
+        url = self.base_uri + '/webwxverifyuser?r='+str(int(time.time()))+'&lang=zh_CN'
+        params = {
+            "BaseRequest": self.base_request,
+            "Opcode": 3,
+            "VerifyUserListSize": 1,
+            "VerifyUserList": [
+                {
+                    "Value": RecommendInfo['UserName'],
+                    "VerifyUserTicket": RecommendInfo['Ticket']             }
+            ],
+            "VerifyContent": "",
+            "SceneListCount": 1,
+            "SceneList": [
+                33
+            ],
+            "skey": self.skey
+        }
+        headers = {'content-type': 'application/json; charset=UTF-8'}
+        data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        try:
+            r = self.session.post(url, data=data, headers=headers)
+        except (ConnectionError, ReadTimeout):
+            return False
+        dic = r.json()
+        return dic['BaseResponse']['Ret'] == 0
+
     def send_msg_by_uid(self, word, dst='filehelper'):
         url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % self.pass_ticket
         msg_id = str(int(time.time() * 1000)) + str(random.random())[:5].replace('.', '')
@@ -667,8 +700,8 @@ class WXBot:
         if not os.path.exists(fpath):
             print '[ERROR] File not exists.'
             return None
-        url_1 = 'https://file.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
-        url_2 = 'https://file2.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
+        url_1 = 'https://file.wx2.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
+        url_2 = 'https://file2.wx2.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
         flen = str(os.path.getsize(fpath))
         ftype = mimetypes.guess_type(fpath)[0] or 'application/octet-stream'
         files = {
