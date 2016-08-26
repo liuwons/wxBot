@@ -721,7 +721,7 @@ class WXBot:
                     })),
                 'webwx_data_ticket': (None, self.session.cookies['webwx_data_ticket']),
                 'pass_ticket': (None, self.pass_ticket),
-                'filename': (os.path.basename(os.path.join(self.temp_pwd,fpath)), open(os.path.join(self.temp_pwd,fpath), 'rb'),ftype.split('/')[1]),
+                'filename': (os.path.basename(fpath), open(fpath, 'rb'),ftype.split('/')[1]),
                 }
         self.file_index += 1
         try:
@@ -815,7 +815,7 @@ class WXBot:
         uid = self.get_user_id(name)
         if uid is not None:
             if isfile:
-                with open(os.path.join(self.temp_pwd,word), 'r') as f:
+                with open(word, 'r') as f:
                     result = True
                     for line in f.readlines():
                         line = line.replace('\n', '')
