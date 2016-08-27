@@ -620,6 +620,10 @@ class WXBot:
                         r = self.sync()
                         if r is not None:
                             self.handle_msg(r)
+                    elif selector == '4':  # 通讯录更新
+                        r = self.sync()
+                        if r is not None:
+                            self.get_contact()
                     elif selector == '6':  # 可能是红包
                         r = self.sync()
                         if r is not None:
@@ -671,6 +675,98 @@ class WXBot:
             return False
         dic = r.json()
         return dic['BaseResponse']['Ret'] == 0
+
+    def add_groupuser_to_friend_by_uid(self,uid,VerifyContent):
+        """
+        主动向群内人员打招呼，提交添加好友请求
+        uid-群内人员得uid   VerifyContent-好友招呼内容
+        慎用此接口！封号后果自负！慎用此接口！封号后果自负！慎用此接口！封号后果自负！
+        """
+        if self.is_contact(uid):
+            return True
+        url = self.base_uri + '/webwxverifyuser?r='+str(int(time.time()))+'&lang=zh_CN'
+        params ={
+            "BaseRequest": self.base_request,
+            "Opcode": 2,
+            "VerifyUserListSize": 1,
+            "VerifyUserList": [
+                {
+                    "Value": uid,
+                    "VerifyUserTicket": ""
+                }
+            ],
+            "VerifyContent": VerifyContent,
+            "SceneListCount": 1,
+            "SceneList": [
+                33
+            ],
+            "skey": self.skey
+        }
+        headers = {'content-type': 'application/json; charset=UTF-8'}
+        data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        try:
+            r = self.session.post(url, data=data, headers=headers)
+        except (ConnectionError, ReadTimeout):
+            return False
+        dic = r.json()
+        return dic['BaseResponse']['Ret'] == 0
+
+    def add_friend_to_group(self,uid,group_name):
+        """
+        将好友加入到群聊中
+        """
+        gid = ''
+        #通过群名获取群id,群没保存到通讯录中的话无法添加哦
+        for group in self.group_list:
+            if group['NickName'] == group_name:
+                gid = group['UserName']
+        if gid == '':
+            return False
+        #通过群id判断uid是否在群中
+        for user in self.group_members[gid]:
+            if user['UserName'] == uid:
+                #已经在群里面了,不用加了
+                return True
+        url = self.base_uri + '/webwxupdatechatroom?fun=addmember&pass_ticket=%s' % self.pass_ticket
+        params ={
+            "AddMemberList": uid,
+            "ChatRoomName": gid,
+            "BaseRequest": self.base_request
+        }
+        headers = {'content-type': 'application/json; charset=UTF-8'}
+        data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        try:
+            r = self.session.post(url, data=data, headers=headers)
+        except (ConnectionError, ReadTimeout):
+            return False
+        dic = r.json()
+        return dic['BaseResponse']['Ret'] == 0
+
+    def delete_user_from_group(self,uname,gid):
+        """
+        将群用户从群中剔除，只有群管理员有权限
+        """
+        uid = ""
+        for user in self.group_members[gid]:
+            if user['NickName'] == uname:
+                uid = user['UserName']
+        if uid == "":
+            return False
+        url = self.base_uri + '/webwxupdatechatroom?fun=delmember&pass_ticket=%s' % self.pass_ticket
+        params ={
+            "DelMemberList": uid,
+            "ChatRoomName": gid,
+            "BaseRequest": self.base_request
+        }
+        headers = {'content-type': 'application/json; charset=UTF-8'}
+        data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        try:
+            r = self.session.post(url, data=data, headers=headers)
+        except (ConnectionError, ReadTimeout):
+            return False
+        dic = r.json()
+        return dic['BaseResponse']['Ret'] == 0
+
 
     def send_msg_by_uid(self, word, dst='filehelper'):
         url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % self.pass_ticket
