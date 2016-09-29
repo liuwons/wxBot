@@ -77,7 +77,7 @@ class WXBot:
         self.sync_host = ''
 
         #文件缓存目录
-        self.temp_pwd  =  os.path.join(os.getcwd(),'temp')
+        self.temp_pwd  =  os.path.join(os.getcwd(), 'temp')
         if os.path.exists(self.temp_pwd) == False:
             os.makedirs(self.temp_pwd)
 
@@ -102,9 +102,12 @@ class WXBot:
         self.special_list = []  # 特殊账号列表
         self.encry_chat_room_id_list = []  # 存储群聊的EncryChatRoomId，获取群内成员头像时需要用到
 
-        self.file_index = 0
+        self.file_index = 0  # 文件上传序号
 
-        self.msg_queue = Queue()
+        self.msg_queue = Queue()  # 消息处理队列,handle_msg_all是从此队列拿消息的
+        self.msg_thread = None
+        self.schedule_thread = None
+        self.inner_proc_thread = None
 
     @staticmethod
     def to_unicode(string, encoding='utf-8'):
@@ -170,22 +173,6 @@ class WXBot:
                 if member['UserName'] not in self.account_info:
                     self.account_info['group_member'][member['UserName']] = \
                         {'type': 'group_member', 'info': member, 'group': group}
-
-        if self.DEBUG:
-            with open(os.path.join(self.temp_pwd,'contact_list.json'), 'w') as f:
-                f.write(json.dumps(self.contact_list))
-            with open(os.path.join(self.temp_pwd,'special_list.json'), 'w') as f:
-                f.write(json.dumps(self.special_list))
-            with open(os.path.join(self.temp_pwd,'group_list.json'), 'w') as f:
-                f.write(json.dumps(self.group_list))
-            with open(os.path.join(self.temp_pwd,'public_list.json'), 'w') as f:
-                f.write(json.dumps(self.public_list))
-            with open(os.path.join(self.temp_pwd,'member_list.json'), 'w') as f:
-                f.write(json.dumps(self.member_list))
-            with open(os.path.join(self.temp_pwd,'group_users.json'), 'w') as f:
-                f.write(json.dumps(self.group_members))
-            with open(os.path.join(self.temp_pwd,'account_info.json'), 'w') as f:
-                f.write(json.dumps(self.account_info))
         return True
 
     def batch_get_group_members(self):
@@ -605,7 +592,6 @@ class WXBot:
         pass
 
     def proc_msg(self):
-        self.test_sync_check()
         while True:
             check_time = time.time()
             try:
@@ -670,7 +656,10 @@ class WXBot:
             if check_time < self.SCHEDULE_INTV:
                 time.sleep(self.SCHEDULE_INTV - check_time)
 
-    def run(self):
+    def login_and_init_with_restore(self):
+        return self.restore_login_result()
+
+    def login_and_init_with_qr(self):
         self.get_uuid()
         self.gen_qr_code(os.path.join(self.temp_pwd, 'wxqr.png'))
         print '[INFO] Please use WeChat to scan the QR code .'
@@ -678,33 +667,60 @@ class WXBot:
         result = self.wait4login()
         if result != SUCCESS:
             print '[ERROR] Web WeChat login failed. failed code=%s' % (result,)
-            return
+            return False
 
         if self.login():
             print '[INFO] Web WeChat login succeed .'
         else:
             print '[ERROR] Web WeChat login failed .'
-            return
-
+            return False
         if self.init():
             print '[INFO] Web WeChat init succeed .'
         else:
             print '[INFO] Web WeChat init failed'
-            return
+            return False
         self.status_notify()
         self.get_contact()
+        self.test_sync_check()
+        self.save_login_result()
+        return True
+
+    def run_inner(self):
         print '[INFO] Get %d contacts' % len(self.contact_list)
         print '[INFO] Start to process messages .'
-
-        msg_thread = threading.Thread(target=self.msg_thread_proc)
-        msg_thread.setDaemon(True)
-        msg_thread.start()
-
-        msg_thread = threading.Thread(target=self.schedule_thread_proc)
-        msg_thread.setDaemon(True)
-        msg_thread.start()
-
         self.proc_msg()
+
+    def run(self):
+        if not self.login_and_init_with_restore():
+            print '[INFO] Restore login failed !'
+            if not self.login_and_init_with_qr():
+                print '[ERROR] Login and init failed !'
+                return
+        else:
+            print '[INFO Restore login succeed .'
+
+        self.msg_thread = threading.Thread(target=self.msg_thread_proc)
+        self.msg_thread.setDaemon(True)
+        self.msg_thread.start()
+
+        self.schedule_thread = threading.Thread(target=self.schedule_thread_proc)
+        self.schedule_thread.setDaemon(True)
+        self.schedule_thread.start()
+
+        self.inner_proc_thread = threading.Thread(target=self.run_inner)
+        self.inner_proc_thread.setDaemon(True)
+        self.inner_proc_thread.start()
+        self.inner_proc_thread.join()
+
+        while True:
+            if self.login_and_init_with_restore():
+                self.inner_proc_thread = threading.Thread(target=self.run_inner)
+                self.inner_proc_thread.setDaemon(True)
+                self.inner_proc_thread.start()
+                self.inner_proc_thread.join()
+            else:
+                print '[ERROR] Try to restore from file failed !'
+                return
 
     def apply_useradd_requests(self,RecommendInfo):
         url = self.base_uri + '/webwxverifyuser?r='+str(int(time.time()))+'&lang=zh_CN'
@@ -1083,6 +1099,69 @@ class WXBot:
                 time.sleep(try_later_secs)
 
         return code
+
+    def save_dict_to_file(self, dic, fname):
+        with open(os.path.join(self.temp_pwd, fname), 'w') as f:
+            f.write(json.dumps(dic))
+
+    def restore_dict_from_file(self, fname):
+        with open(os.path.join(self.temp_pwd, fname), 'r') as f:
+            fstr = f.read()
+            return json.loads(fstr)
+
+    def save_login_result(self):
+        result = {}
+        result['skey'] = self.skey
+        result['sid'] = self.sid
+        result['uin'] = self.uin
+        result['pass_ticket'] = self.pass_ticket
+        result['base_request'] = self.base_request
+        result['redirect_uri'] = self.redirect_uri
+        result['base_uri'] = self.base_uri
+        result['sync_key'] = self.sync_key
+        result['sync_key_str'] = self.sync_key_str
+        result['my_account'] = self.my_account
+        result['sync_host'] = self.sync_host
+        with open(os.path.join(self.temp_pwd, "login_result.json"), 'w') as f:
+            f.write(json.dumps(result))
+
+        self.save_dict_to_file(self.contact_list, 'contact_list.json')
+        self.save_dict_to_file(self.special_list, 'special_list.json')
+        self.save_dict_to_file(self.group_list, 'group_list.json')
+        self.save_dict_to_file(self.public_list, 'public_list.json')
+        self.save_dict_to_file(self.member_list, 'member_list.json')
+        self.save_dict_to_file(self.group_members, 'group_members.json')
+        self.save_dict_to_file(self.account_info, 'account_info.json')
+        self.save_dict_to_file(self.encry_chat_room_id_list, 'encry_chat_room_id_list.json')
+
+    def restore_login_result(self):
+        try:
+            with open(os.path.join(self.temp_pwd, "login_result.json"), 'r') as f:
+                login_str = f.read()
+                result = json.loads(login_str)
+                self.skey = result['skey']
+                self.sid = result['sid']
+                self.uin = result['uin']
+                self.pass_ticket = result['pass_ticket']
+                self.base_request = result['base_request']
+                self.redirect_uri = result['redirect_uri']
+                self.base_uri = result['base_uri']
+                self.sync_key = result['sync_key']
+                self.sync_key_str = result['sync_key_str']
+                self.my_account = result['my_account']
+                self.sync_host = result['sync_host']
+
+            self.contact_list = self.restore_dict_from_file('contact_list.json')
+            self.special_list = self.restore_dict_from_file('special_list.json')
+            self.group_list = self.restore_dict_from_file('group_list.json')
+            self.public_list = self.restore_dict_from_file('public_list.json')
+            self.member_list = self.restore_dict_from_file('member_list.json')
+            self.group_members = self.restore_dict_from_file('group_members.json')
+            self.account_info = self.restore_dict_from_file('account_info.json')
+            self.encry_chat_room_id_list = self.restore_dict_from_file('encry_chat_room_id_list.json')
+            return True
+        except Exception, e:
+            print format_exc()
 
     def login(self):
         if len(self.redirect_uri) < 4:
