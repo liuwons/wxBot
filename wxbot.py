@@ -19,6 +19,7 @@ from requests.exceptions import ConnectionError, ReadTimeout
 from Queue import Queue
 import HTMLParser
 import threading
+import pickle
 
 UNKONWN = 'unkonwn'
 SUCCESS = '200'
@@ -1133,6 +1134,7 @@ class WXBot:
         self.save_dict_to_file(self.group_members, 'group_members.json')
         self.save_dict_to_file(self.account_info, 'account_info.json')
         self.save_dict_to_file(self.encry_chat_room_id_list, 'encry_chat_room_id_list.json')
+        pickle.dump(self.session, open(os.path.join(self.temp_pwd, "session.json"), "w"))
 
     def restore_login_result(self):
         try:
@@ -1159,6 +1161,7 @@ class WXBot:
             self.group_members = self.restore_dict_from_file('group_members.json')
             self.account_info = self.restore_dict_from_file('account_info.json')
             self.encry_chat_room_id_list = self.restore_dict_from_file('encry_chat_room_id_list.json')
+            self.session = pickle.load(open(os.path.join(self.temp_pwd, "session.json"), "r"))
             return True
         except Exception, e:
             print format_exc()
