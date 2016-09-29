@@ -41,12 +41,14 @@ Web微信协议参考资料：
 
 [qwx: WeChat Qt frontend 微信Qt前端](https://github.com/xiangzhai/qwx)
 
+**master-dev 分支为开发版本，用于测试新特性，欢迎使用后提出建议!**
+
 
 ## 1 环境与依赖
 
 此版本只能运行于Python 2环境 。
 
-**wxBot** 用到了Python **requests** , **pypng** , **Pillow* 以及 **pyqrcode** 库。
+**wxBot** 用到了Python **requests** , **pypng** , **Pillow** 以及 **pyqrcode** 库。
 
 使用之前需要所依赖的库:
 
