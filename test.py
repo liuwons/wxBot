@@ -10,10 +10,12 @@ class MyWXBot(WXBot):
             self.send_msg_by_uid(u'hi', msg['user']['id'])
             self.send_img_msg_by_uid("img/1.png", msg['user']['id'])
             self.send_file_msg_by_uid("img/1.png", msg['user']['id'])
-'''
+
     def schedule(self):
         self.send_msg(u'测试群', u'测试')
-'''
+        self.send_img_msg_by_uid("img/1.png", self.get_user_id(u"测试群"))
+        self.send_file_msg_by_uid("img/1.png", self.get_user_id(u"测试群"))
+        time.sleep(5)
 
 
 def main():
