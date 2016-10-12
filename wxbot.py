@@ -1116,9 +1116,12 @@ class WXBot:
         return dic['BaseResponse']['Ret'] == 0
 
     def test_sync_check(self):
-        for host in ['webpush', 'webpush2']:
+        for host in ['webpush.wx', 'webpush2.wx2','webpush.weixin', 'webpush2.weixin2']:
             self.sync_host = host
-            retcode = self.sync_check()[0]
+            try:
+                retcode = self.sync_check()[0]
+            except:
+                retcode == -1
             if retcode == '0':
                 return True
         return False
@@ -1133,7 +1136,7 @@ class WXBot:
             'synckey': self.sync_key_str,
             '_': int(time.time()),
         }
-        url = 'https://' + self.sync_host + '.wx.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
+        url = 'https://' + self.sync_host + '.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
         try:
             r = self.session.get(url, timeout=60)
             r.encoding = 'utf-8'
