@@ -1116,7 +1116,7 @@ class WXBot:
         return dic['BaseResponse']['Ret'] == 0
 
     def test_sync_check(self):
-        for host1 in ['webpush', 'webpush2']:
+        for host1 in ['webpush.', 'webpush2.']:
             for host2 in ['weixin','weixin2','wx','wx2']:
             self.sync_host = host1+host2
                 try:
