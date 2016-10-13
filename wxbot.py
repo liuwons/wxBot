@@ -595,30 +595,8 @@ class WXBot:
                     break
                 elif retcode == '1101':  # 从其它设备上登了网页微信
                     break
-                elif retcode == '0':
-                    if selector == '2':  # 有新消息
-                        r = self.sync()
-                        if r is not None:
-                            self.handle_msg(r)
-                    elif selector == '3':  # 未知
-                        r = self.sync()
-                        if r is not None:
-                            self.handle_msg(r)
-                    elif selector == '6':  # 可能是红包
-                        r = self.sync()
-                        if r is not None:
-                            self.handle_msg(r)
-                    elif selector == '7':  # 在手机上操作了微信
-                        r = self.sync()
-                        if r is not None:
-                            self.handle_msg(r)
-                    elif selector == '0':  # 无事件
-                        pass
-                    else:
-                        print '[DEBUG] sync_check:', retcode, selector
-                        r = self.sync()
-                        if r is not None:
-                            self.handle_msg(r)
+                elif retcode != -1:
+                    self.sync_and_handle()
                 else:
                     print '[DEBUG] sync_check:', retcode, selector
                 self.schedule()
@@ -628,6 +606,11 @@ class WXBot:
             check_time = time.time() - check_time
             if check_time < 0.8:
                 time.sleep(1 - check_time)
+
+    def sync_and_handle(self):
+        r = self.sync()
+        if r is not None:
+            self.handle_msg(r)
 
     def send_msg_by_uid(self, word, dst='filehelper'):
         url = self.base_uri + '/webwxsendmsg?pass_ticket=%s' % self.pass_ticket
@@ -977,7 +960,7 @@ class WXBot:
         return dic['BaseResponse']['Ret'] == 0
 
     def test_sync_check(self):
-        for host in ['webpush', 'webpush2']:
+        for host in ['webpush']:
             self.sync_host = host
             retcode = self.sync_check()[0]
             if retcode == '0':
