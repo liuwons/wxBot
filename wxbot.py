@@ -1116,15 +1116,11 @@ class WXBot:
         return dic['BaseResponse']['Ret'] == 0
 
     def test_sync_check(self):
-        for host1 in ['webpush.', 'webpush2.']:
-            for host2 in ['weixin','weixin2','wx','wx2']:
-                self.sync_host = host1+host2
-                try:
-                    retcode = self.sync_check()[0]
-                except:
-                    retcode == -1
-                if retcode == '0':
-                    return True
+        for host in ['webpush.wx2']:
+            self.sync_host = host
+            retcode = self.sync_check()[0]
+            if retcode == '0':
+                return True
         return False
 
     def sync_check(self):
@@ -1195,7 +1191,7 @@ class WXBot:
         url = self.base_uri + '/webwxgetheadimg?username=%s&skey=%s' % (uid, self.skey)
         r = self.session.get(url)
         data = r.content
-        fn = 'head_' + uid + '.jpg'
+        fn = '/group/head_' + uid + '.jpg'
         with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
@@ -1250,3 +1246,4 @@ class WXBot:
             return dic['BaseResponse']['ErrMsg']
         except:
             return None
+
