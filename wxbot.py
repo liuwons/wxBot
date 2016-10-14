@@ -1140,7 +1140,7 @@ class WXBot:
                 try:
                     retcode = self.sync_check()[0]
                 except:
-                    retcode == -1
+                    retcode = -1
                 if retcode == '0':
                     return True
         return False
