@@ -62,6 +62,7 @@ class WXBot:
         self.DEBUG = False
         self.uuid = ''
         self.base_uri = ''
+        self.base_host = ''
         self.redirect_uri = ''
         self.uin = ''
         self.sid = ''
@@ -641,6 +642,7 @@ class WXBot:
                             self.handle_msg(r)
                 else:
                     print '[DEBUG] sync_check:', retcode, selector
+                    time.sleep(10)
                 self.schedule()
             except:
                 print '[ERROR] Except in proc_msg'
@@ -814,8 +816,8 @@ class WXBot:
         if not os.path.exists(fpath):
             print '[ERROR] File not exists.'
             return None
-        url_1 = 'https://file.wx2.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
-        url_2 = 'https://file2.wx2.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
+        url_1 = 'https://file.'+self.base_host+'/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
+        url_2 = 'https://file2.'+self.base_host+'/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json'
         flen = str(os.path.getsize(fpath))
         ftype = mimetypes.guess_type(fpath)[0] or 'application/octet-stream'
         files = {
@@ -1057,6 +1059,8 @@ class WXBot:
                 redirect_uri = param.group(1) + '&fun=new'
                 self.redirect_uri = redirect_uri
                 self.base_uri = redirect_uri[:redirect_uri.rfind('/')]
+                temp_host = self.base_uri[8:]
+                self.base_host = temp_host[:host2.find("/")]
                 return code
             elif code == TIMEOUT:
                 print '[ERROR] WeChat login timeout. retry in %s secs later...' % (try_later_secs,)
@@ -1135,14 +1139,13 @@ class WXBot:
 
     def test_sync_check(self):
         for host1 in ['webpush.', 'webpush2.']:
-            for host2 in ['weixin','weixin2','wx','wx2']:
-                self.sync_host = host1+host2
-                try:
-                    retcode = self.sync_check()[0]
-                except:
-                    retcode = -1
-                if retcode == '0':
-                    return True
+            self.sync_host = host1+self.base_host
+            try:
+                retcode = self.sync_check()[0]
+            except:
+                retcode = -1
+            if retcode == '0':
+                return True
         return False
 
     def sync_check(self):
@@ -1155,7 +1158,7 @@ class WXBot:
             'synckey': self.sync_key_str,
             '_': int(time.time()),
         }
-        url = 'https://' + self.sync_host + '.qq.com/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
+        url = 'https://' + self.sync_host + '/cgi-bin/mmwebwx-bin/synccheck?' + urllib.urlencode(params)
         try:
             r = self.session.get(url, timeout=60)
             r.encoding = 'utf-8'
