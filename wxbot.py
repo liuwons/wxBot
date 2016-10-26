@@ -1060,7 +1060,7 @@ class WXBot:
                 self.redirect_uri = redirect_uri
                 self.base_uri = redirect_uri[:redirect_uri.rfind('/')]
                 temp_host = self.base_uri[8:]
-                self.base_host = temp_host[:host2.find("/")]
+                self.base_host = temp_host[:temp_host.find("/")]
                 return code
             elif code == TIMEOUT:
                 print '[ERROR] WeChat login timeout. retry in %s secs later...' % (try_later_secs,)
