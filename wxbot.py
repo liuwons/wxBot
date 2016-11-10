@@ -204,7 +204,71 @@ class WXBot:
             encry_chat_room_id[gid] = group['EncryChatRoomId']
         self.group_members = group_members
         self.encry_chat_room_id_list = encry_chat_room_id
-
+        
+    #动态更新通讯录信息信息 by vivre90 2016-11-10 
+    def batch_get_contact(self,memberlist):
+        """动态更新通讯录信息信息"""
+        url = self.base_uri + '/webwxbatchgetcontact?type=ex&r=%s&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
+        params = {
+            'BaseRequest': self.base_request,
+            "Count": len(self.group_list),
+            "List": [{"UserName": group['UserName'], "EncryChatRoomId": ""} for group in memberlist]
+        }
+        r = self.session.post(url, data=json.dumps(params))
+        r.encoding = 'utf-8'
+        dic = json.loads(r.text)
+        for temp in dic['ContactList']:
+            if temp['VerifyFlag'] & 8 != 0:  # 公众号
+                #更新公众号列表,先判断公众号列表中有没有他，有就更新、没就新增
+                i = 0
+                Is_in = False
+                for x in self.public_list:
+                    if x['UserName'] == temp['UserName']:
+                        Is_in = True
+                        break
+                    i = i + 1
+                if Is_in:
+                    self.public_list[i] = x  #更新
+                else:
+                    self.public_list.append(x) #新增
+                self.account_info['normal_member'][temp['UserName']] = {'type': 'public', 'info': temp}
+            elif temp['UserName'].find('@@') ==0 :#群聊,并更新
+                gid = temp['UserName']
+                #更新群列表,先判断群列表中有没有他，有就更新、没就新增
+                i = 0
+                Is_in = False
+                for x in self.group_list:
+                    if x['UserName'] == temp['UserName']:
+                        Is_in = True
+                        break
+                    i = i + 1
+                self.group_members[gid] = temp['MemberList'] #更新群联系人列表
+                temp['MemberList'] = [] #去除下群聊用户列表，防止字典太大
+                if Is_in:
+                    self.group_list[i] = temp  #更新
+                else:
+                    self.group_list.append(temp) #新增
+                self.encry_chat_room_id_list[gid] = temp['EncryChatRoomId']  #更新群加密ID
+                #添加到account_info中,以便在内部处理消息的时候能够正确获取到消息的群名
+                self.account_info['normal_member'][temp['UserName']] = {'type': 'group', 'info': temp}
+            elif temp['UserName'][1] != '@' and temp['UserName'][0] == '@':
+                #更新联系人列表,先判断联系人列表中有没有他，有就更新、没就新增
+                i = 0
+                Is_in = False
+                for x in self.contact_list:
+                    if x['UserName'] == temp['UserName']:
+                        Is_in = True
+                        break
+                    i = i + 1
+                if Is_in:
+                    self.contact_list[i] = x  #更新
+                else:
+                    self.contact_list.append(x) #新增
+                self.account_info['normal_member'][temp['UserName']] = {'type': 'contact', 'info': temp}
+            else:
+                #可能是特殊帐号、本人号的信息更新 待处理。。
+                pass
+            
     def get_group_member_name(self, gid, uid):
         """
         获取群聊中指定成员的名称信息
@@ -229,8 +293,7 @@ class WXBot:
 
     def get_contact_info(self, uid):
         return self.account_info['normal_member'].get(uid)
-
-
+    
     def get_group_member_info(self, uid):
         return self.account_info['group_member'].get(uid)
 
@@ -640,6 +703,13 @@ class WXBot:
                         r = self.sync()
                         if r is not None:
                             self.handle_msg(r)
+                    
+                    try:
+                        #动态处理联系人、群更新消息 by vivre90 2016-11-10 (只有新入群、新联系人、群名变更的时候才会触发)
+                        if r['ModContactList'] != []: 
+                            self.batch_get_contact(r['ModContactList'])
+                    except:
+                        pass
                 else:
                     print '[DEBUG] sync_check:', retcode, selector
                     time.sleep(10)
