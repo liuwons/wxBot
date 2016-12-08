@@ -17,7 +17,6 @@ import random
 from traceback import format_exc
 from requests.exceptions import ConnectionError, ReadTimeout
 import HTMLParser
-import xml.etree.ElementTree as ET
 
 UNKONWN = 'unkonwn'
 SUCCESS = '200'
@@ -665,17 +664,13 @@ class WXBot:
         """
         for msg in r['AddMsgList']:
             user = {'id': msg['FromUserName'], 'name': 'unknown'}
-            if msg['MsgType'] == 51:  # init message
+            if msg['MsgType'] == 51 and msg['StatusNotifyCode'] == 4:  # init message
                 msg_type_id = 0
                 user['name'] = 'system'
                 #会获取所有联系人的username 和 wxid，但是会收到3次这个消息，只取第一次
                 if self.is_big_contact and len(self.full_user_name_list) == 0:
                     self.full_user_name_list = msg['StatusNotifyUserName'].split(",")
-                    wxid_str = msg["Content"]
-                    tmp = wxid_str.replace("&lt;", "<")
-                    wxid_str = tmp.replace("&gt;", ">")
-                    tree = ET.fromstring(wxid_str)
-                    self.wxid_list = tree[1][1].text.split(",")
+                    self.wxid_list = re.search(r"username&gt;(.*?)&lt;/username", msg["Content"]).group(1).split(",")
                     with open(os.path.join(self.temp_pwd,'UserName.txt'), 'w') as f:
                         f.write(msg['StatusNotifyUserName'])
                     with open(os.path.join(self.temp_pwd,'wxid.txt'), 'w') as f:
