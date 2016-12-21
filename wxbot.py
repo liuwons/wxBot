@@ -674,7 +674,7 @@ class WXBot:
                     with open(os.path.join(self.temp_pwd,'UserName.txt'), 'w') as f:
                         f.write(msg['StatusNotifyUserName'])
                     with open(os.path.join(self.temp_pwd,'wxid.txt'), 'w') as f:
-                        f.write(wxid_str)
+                        f.write(json.dumps(self.wxid_list))
                     print "[INFO] Contact list is too big. Now start to fetch member list ."
                     self.get_big_contact()
 
