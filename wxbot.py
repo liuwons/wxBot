@@ -874,6 +874,38 @@ class WXBot:
         dic = r.json()
         return dic['BaseResponse']['Ret'] == 0
 
+    def invite_friend_to_group(self,uid,group_name):
+        """
+        将好友加入到群中。对人数多的群，需要调用此方法。
+        拉人时，可以先尝试使用add_friend_to_group方法，当调用失败(Ret=1)时，再尝试调用此方法。
+        """
+        gid = ''
+        # 通过群名获取群id,群没保存到通讯录中的话无法添加哦
+        for group in self.group_list:
+            if group['NickName'] == group_name:
+                gid = group['UserName']
+        if gid == '':
+            return False
+        # 通过群id判断uid是否在群中
+        for user in self.group_members[gid]:
+            if user['UserName'] == uid:
+                # 已经在群里面了,不用加了
+                return True
+        url = self.base_uri + '/webwxupdatechatroom?fun=invitemember&pass_ticket=%s' % self.pass_ticket
+        params = {
+            "InviteMemberList": uid,
+            "ChatRoomName": gid,
+            "BaseRequest": self.base_request
+        }
+        headers = {'content-type': 'application/json; charset=UTF-8'}
+        data = json.dumps(params, ensure_ascii=False).encode('utf8')
+        try:
+            r = self.session.post(url, data=data, headers=headers)
+        except (ConnectionError, ReadTimeout):
+            return False
+        dic = r.json()
+        return dic['BaseResponse']['Ret'] == 0
+
     def delete_user_from_group(self,uname,gid):
         """
         将群用户从群中剔除，只有群管理员有权限
