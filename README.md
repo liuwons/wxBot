@@ -164,6 +164,7 @@ python test.py
 | 10 | 撤回消息 | 不可用 |
 | 11 | 空内容 | 空字符串 |
 | 12 | 红包 | 不可用 |
+| 13 | 小视频 | 字符串，视频数据的url，HTTP POST请求此url可以得到mp4文件格式的数据 |
 | 99 | 未知类型 | 不可用 |
 
 ### 4.4 群文本消息
@@ -202,6 +203,7 @@ python test.py
 | `get_head_img(id)` | 获取用户头像并保存到本地文件 ***img_[id].jpg*** ，`id` 为用户id(Web微信数据) |
 | `get_msg_img(msgid)` | 获取图像消息并保存到本地文件 ***img_[msgid].jpg*** , `msgid` 为消息id(Web微信数据) |
 | `get_voice(msgid)` | 获取语音消息并保存到本地文件 ***voice_[msgid].mp3*** , `msgid` 为消息id(Web微信数据) |
+| `get_video(msgid)` | 获取视频消息并保存到本地文件 ***video_[msgid].mp4*** , `msgid` 为消息id(Web微信数据) |
 | `get_contact_name(uid)` | 获取微信id对应的名称，返回一个可能包含 `remark_name` (备注名), `nickname` (昵称), `display_name` (群名称)的字典|
 | `send_msg_by_uid(word, dst)` | 向好友发送消息，`word` 为消息字符串，`dst` 为好友用户id(Web微信数据) |
 | `send_img_msg_by_uid(fpath, dst)` | 向好友发送图片消息，`fpath` 为本地图片文件路径，`dst` 为好友用户id(Web微信数据) |
