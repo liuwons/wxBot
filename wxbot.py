@@ -641,6 +641,11 @@ class WXBot:
             msg_content['data'] = msg['Content']
             if self.DEBUG:
                 print '    [Unknown]'
+        elif mtype == 43:
+            msg_content['type'] = 13
+            msg_content['data'] = self.get_video_url(msg_id)
+            if self.DEBUG:
+                print '    %s[video] %s' % (msg_prefix, msg_content['data'])
         else:
             msg_content['type'] = 99
             msg_content['data'] = content
@@ -1416,6 +1421,25 @@ class WXBot:
         with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
             f.write(data)
         return fn
+
+    def get_video_url(self, msgid):
+        return self.base_uri + '/webwxgetvideo?msgid=%s&skey=%s' % (msgid, self.skey)
+
+    def get_video(self, msgid):
+        """
+        获取视频消息，下载视频到本地
+        :param msgid: 视频消息id
+        :return: 保存的本地视频文件路径
+        """
+        url = self.base_uri + '/webwxgetvideo?msgid=%s&skey=%s' % (msgid, self.skey)
+        headers = {'Range': 'bytes=0-'}
+        r = self.session.get(url, headers=headers)
+        data = r.content
+        fn = 'video_' + msgid + '.mp4'
+        with open(os.path.join(self.temp_pwd,fn), 'wb') as f:
+            f.write(data)
+        return fn
+
     def set_remarkname(self,uid,remarkname):#设置联系人的备注名
         url = self.base_uri + '/webwxoplog?lang=zh_CN&pass_ticket=%s' \
                               % (self.pass_ticket)
