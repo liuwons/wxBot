@@ -12,7 +12,6 @@ setup(
     classifiers=[],
     packages=['wxbot'],
     install_requires=[
-        'jsonpickle',
         'Pillow',
         'pyqrcode',
         'pypng',

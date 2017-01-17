@@ -3,23 +3,18 @@
 from __future__ import print_function
 
 import os
-import sys
 import tempfile
-import traceback
 import webbrowser
 
 import binascii
-import jsonpickle
 import pyqrcode
 import requests
 import mimetypes
 import json
 import xml.dom.minidom
-import urllib
 import time
 import re
 import random
-from traceback import format_exc
 from requests.exceptions import ConnectionError, ReadTimeout
 
 import sys
@@ -1149,51 +1144,6 @@ class WXBot:
                 return pm.group(1)
         return 'unknown'
 
-    def save_to_file(self):
-        with open(os.path.join(self.temp_pwd, 'session_state.json'), 'w') as fp:
-            json.dump({
-                'uuid': self.uuid,
-                'base_uri': self.base_uri,
-                'base_host': self.base_host,
-                'redirect_uri': self.redirect_uri,
-                'uin': self.uin,
-                'sid': self.sid,
-                'skey': self.skey,
-                'pass_ticket': self.pass_ticket,
-                'device_id': self.device_id,
-                'base_request': self.base_request,
-                'session': jsonpickle.encode(self.session),
-            }, fp)
-
-    def load_from_file(self):
-        if not os.path.exists(self.state_file):
-            return False
-
-        try:
-            with open(self.state_file) as fp:
-                state = json.load(fp)
-                self.uuid = state['uuid']
-                self.base_uri = state['base_uri']
-                self.base_host = state['base_host']
-                self.redirect_uri = state['redirect_uri']
-                self.uin = state['uin']
-                self.sid = state['sid']
-                self.skey = state['skey']
-                self.pass_ticket = state['pass_ticket']
-                self.device_id = state['device_id']
-                self.base_request = state['base_request']
-                self.session = jsonpickle.decode(state['session'])
-        except:
-            log.info("Failed to load from local file")
-            return False
-
-        if self.init():
-            log.info('Web WeChat init succeed .')
-            return True
-        else:
-            log.info('Web WeChat init failed')
-            return False
-
     def login(self):
         self.get_uuid()
         self.gen_qr_code(os.path.join(self.temp_pwd,'wxqr.png'))
@@ -1212,15 +1162,14 @@ class WXBot:
 
         if self.init():
             log.info('Web WeChat init succeed .')
-            self.save_to_file()
             return True
         else:
             log.error('Web WeChat init failed')
             return False
 
     def run(self):
-        if not self.load_from_file() and not self.login():
-            log.error('Both recovered login status and fresh login are failed.')
+        if not self.login():
+            log.error('login failed.')
             return False
 
         self.status_notify()
