@@ -2,7 +2,6 @@
 # coding: utf-8
 from __future__ import print_function
 
-import logging
 from wxbot import *
 import ConfigParser
 import json
@@ -99,9 +98,11 @@ class TulingWXBot(WXBot):
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
+    logging.getLogger("requests").setLevel(logging.WARNING)
+
     bot = TulingWXBot()
     bot.DEBUG = True
-    logging.basicConfig(level=logging.DEBUG)
     bot.conf['qr'] = 'png'
 
     bot.run()

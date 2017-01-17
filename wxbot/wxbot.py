@@ -40,6 +40,7 @@ SUCCESS = '200'
 SCANED = '201'
 TIMEOUT = '408'
 
+
 def map_username_batch(user_name):
     return {"UserName": user_name, "EncryChatRoomId": ""}
 
@@ -74,7 +75,7 @@ class SafeSession(requests.Session):
                 log.exception('request %s failed' % url)
                 continue
 
-        #重试3次以后再加一次，抛出异常
+        # 重试3次以后再加一次，抛出异常
         try:
             return super(SafeSession, self).request(method, url, params, data, headers, cookies, files, auth,
                                                     timeout,
@@ -102,16 +103,19 @@ class WXBot:
         self.sync_key = []
         self.sync_host = ''
 
-        self.batch_count = 50    #一次拉取50个联系人的信息
-        self.full_user_name_list = []    #直接获取不到通讯录时，获取的username列表
-        self.wxid_list = []   #获取到的wxid的列表
-        self.cursor = 0   #拉取联系人信息的游标
-        self.is_big_contact = False  #通讯录人数过多，无法直接获取
-        #文件缓存目录
+        self.batch_count = 50    # 一次拉取50个联系人的信息
+        self.full_user_name_list = []    # 直接获取不到通讯录时，获取的username列表
+        self.wxid_list = []   # 获取到的wxid的列表
+        self.cursor = 0   # 拉取联系人信息的游标
+        self.is_big_contact = False  # 通讯录人数过多，无法直接获取
+        # 文件缓存目录
 
-        self.temp_pwd = os.path.join(tempfile.gettempdir(), 'wxbot')
+        self.temp_pwd = os.path.join(os.getcwd(), 'temp')
         if not os.path.exists(self.temp_pwd):
+            log.info("Temp path not exists, create it: " + self.temp_pwd)
             os.makedirs(self.temp_pwd)
+        else:
+            log.info("Temp path exists: " + self.temp_pwd)
 
         self.session = SafeSession()
         self.session.headers.update({'User-Agent': 'Mozilla/5.0 (X11; Linux i686; U;) Gecko/20070322 Kazehakase/0.4.5'})
@@ -160,7 +164,7 @@ class WXBot:
         url = self.base_uri + '/webwxgetcontact?pass_ticket=%s&skey=%s&r=%s' \
                               % (self.pass_ticket, self.skey, int(time.time()))
 
-        #如果通讯录联系人过多，这里会直接获取失败
+        # 如果通讯录联系人过多，这里会直接获取失败
         try:
             r = self.session.post(url, data='{}')
         except Exception as e:
@@ -228,12 +232,11 @@ class WXBot:
                 f.write(json.dumps(self.account_info))
         return True
 
-
     def get_big_contact(self):
         total_len = len(self.full_user_name_list)
         user_info_list = []
 
-        #一次拉取50个联系人的信息，包括所有的群聊，公众号，好友
+        # 一次拉取50个联系人的信息，包括所有的群聊，公众号，好友
         while self.cursor < total_len:
             cur_batch = self.full_user_name_list[self.cursor:(self.cursor+self.batch_count)]
             self.cursor += self.batch_count
@@ -305,8 +308,6 @@ class WXBot:
         log.info('Start to process messages .')
         return True
 
-
-
     def batch_get_contact(self, cur_batch):
         """批量获取成员信息"""
         url = self.base_uri + '/webwxbatchgetcontact?type=ex&r=%s&pass_ticket=%s' % (int(time.time()), self.pass_ticket)
@@ -318,9 +319,7 @@ class WXBot:
         r = self.session.post(url, data=json.dumps(params))
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
-        #print dic['ContactList']
         return dic['ContactList']
-
 
     def batch_get_group_members(self):
         """批量获取所有群聊成员信息"""
@@ -367,7 +366,6 @@ class WXBot:
 
     def get_contact_info(self, uid):
         return self.account_info['normal_member'].get(uid)
-
 
     def get_group_member_info(self, uid):
         return self.account_info['group_member'].get(uid)
@@ -691,7 +689,7 @@ class WXBot:
             if msg['MsgType'] == 51 and msg['StatusNotifyCode'] == 4:  # init message
                 msg_type_id = 0
                 user['name'] = 'system'
-                #会获取所有联系人的username 和 wxid，但是会收到3次这个消息，只取第一次
+                # 会获取所有联系人的username 和 wxid，但是会收到3次这个消息，只取第一次
                 if self.is_big_contact and len(self.full_user_name_list) == 0:
                     self.full_user_name_list = msg['StatusNotifyUserName'].split(",")
                     self.wxid_list = re.search(r"username&gt;(.*?)&lt;/username", msg["Content"]).group(1).split(",")
@@ -871,16 +869,16 @@ class WXBot:
         将好友加入到群聊中
         """
         gid = ''
-        #通过群名获取群id,群没保存到通讯录中的话无法添加哦
+        # 通过群名获取群id,群没保存到通讯录中的话无法添加哦
         for group in self.group_list:
             if group['NickName'] == group_name:
                 gid = group['UserName']
         if gid == '':
             return False
-        #通过群id判断uid是否在群中
+        # 通过群id判断uid是否在群中
         for user in self.group_members[gid]:
             if user['UserName'] == uid:
-                #已经在群里面了,不用加了
+                # 已经在群里面了,不用加了
                 return True
         url = self.base_uri + '/webwxupdatechatroom?fun=addmember&pass_ticket=%s' % self.pass_ticket
         params ={
@@ -1066,6 +1064,7 @@ class WXBot:
     def send_img_msg_by_uid(self, fpath, uid):
         mid = self.upload_media(fpath, is_img=True)
         if mid is None:
+            log.error("upload media failed")
             return False
         url = self.base_uri + '/webwxsendmsgimg?fun=async&f=json'
         data = {
@@ -1185,7 +1184,7 @@ class WXBot:
                 self.base_request = state['base_request']
                 self.session = jsonpickle.decode(state['session'])
         except:
-            log.exception('Failed to parse %s' % self.state_file)
+            log.info("Failed to load from local file")
             return False
 
         if self.init():
