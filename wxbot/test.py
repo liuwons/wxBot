@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import logging
 from wxbot import *
 
 
@@ -20,6 +21,7 @@ class MyWXBot(WXBot):
 def main():
     bot = MyWXBot()
     bot.DEBUG = True
+    logging.basicConfig(level=logging.DEBUG)
     bot.conf['qr'] = 'png'
     bot.is_big_contact = False   #如果确定通讯录过大，无法获取，可以直接配置，跳过检查。假如不是过大的话，这个方法可能无法获取所有的联系人
     bot.run()

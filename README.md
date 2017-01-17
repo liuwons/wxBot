@@ -46,17 +46,14 @@ Web微信协议参考资料：
 
 ## 1 环境与依赖
 
-此版本只能运行于Python 2环境 。
+此版本能运行于Python 2及Python 3环境 。
 
-**wxBot** 用到了Python **requests** , **pypng** , **Pillow** 以及 **pyqrcode** 库。
+**wxBot** 用到了Python **jsonpickle**, **requests** , **pypng** , **Pillow** 以及 **pyqrcode** 库。
 
-使用之前需要所依赖的库:
+安装:
 
 ```bash
-pip install requests
-pip install pyqrcode
-pip install pypng
-pip install Pillow
+python setup.py install
 ```
 
 ## 2 快速开发
@@ -74,6 +71,7 @@ pip install Pillow
 # coding: utf-8
 
 import time
+import logging
 from wxbot import *
 
 class MyWXBot(WXBot):
@@ -90,6 +88,7 @@ class MyWXBot(WXBot):
 def main():
     bot = MyWXBot()
     bot.DEBUG = True
+    logging.basicConfig(level=logging.DEBUG)
     bot.run()
 
 if __name__ == '__main__':
@@ -242,7 +241,7 @@ python test.py
   2. 在 ***bot.py*** 文件所在目录下新建 ***conf.ini*** 文件，内容为:(key字段内容为申请到的图灵key)
 
     ```txt
-    [main]    
+    [main]
     key=1d2678900f734aa0a23734ace8aec5b1
     ```
 
