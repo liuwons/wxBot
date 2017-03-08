@@ -859,17 +859,28 @@ class WXBot:
                 gid = group['UserName']
         if gid == '':
             return False
+        #获取群成员数量并判断邀请方式
+        group_num=len(self.group_members[gid])
+        print '[DEBUG] group_name:%s group_num:%s' % (group_name,group_num)
         #通过群id判断uid是否在群中
         for user in self.group_members[gid]:
             if user['UserName'] == uid:
                 #已经在群里面了,不用加了
                 return True
-        url = self.base_uri + '/webwxupdatechatroom?fun=addmember&pass_ticket=%s' % self.pass_ticket
-        params ={
-            "AddMemberList": uid,
-            "ChatRoomName": gid,
-            "BaseRequest": self.base_request
-        }
+        if group_num<=100:
+            url = self.base_uri + '/webwxupdatechatroom?fun=addmember&pass_ticket=%s' % self.pass_ticket
+            params ={
+                "AddMemberList": uid,
+                "ChatRoomName": gid,
+                "BaseRequest": self.base_request
+            }
+        else:
+            url = self.base_uri + '/webwxupdatechatroom?fun=invitemember'
+            params ={
+                "InviteMemberList": uid,
+                "ChatRoomName": gid,
+                "BaseRequest": self.base_request
+            }
         headers = {'content-type': 'application/json; charset=UTF-8'}
         data = json.dumps(params, ensure_ascii=False).encode('utf8')
         try:
