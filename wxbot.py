@@ -152,7 +152,7 @@ class WXBot:
             with open(os.path.join(self.temp_pwd,'contacts.json'), 'w') as f:
                 f.write(r.text.encode('utf-8'))
         dic = json.loads(r.text)
-        self.member_list = dic['MemberList']
+        self.member_list.extend(dic['MemberList'])
 
         special_users = ['newsapp', 'fmessage', 'filehelper', 'weibo', 'qqmail',
                          'fmessage', 'tmessage', 'qmessage', 'qqsync', 'floatbottle',
@@ -674,7 +674,7 @@ class WXBot:
                 user['name'] = 'system'
                 #会获取所有联系人的username 和 wxid，但是会收到3次这个消息，只取第一次
                 if self.is_big_contact and len(self.full_user_name_list) == 0:
-                    self.full_user_name_list = msg['StatusNotifyUserName'].split(",")
+                        self.full_user_name_list.extend(msg['StatusNotifyUserName'].split(","))
                     self.wxid_list = re.search(r"username&gt;(.*?)&lt;/username", msg["Content"]).group(1).split(",")
                     with open(os.path.join(self.temp_pwd,'UserName.txt'), 'w') as f:
                         f.write(msg['StatusNotifyUserName'])
@@ -1294,6 +1294,7 @@ class WXBot:
         r = self.session.post(url, data=json.dumps(params))
         r.encoding = 'utf-8'
         dic = json.loads(r.text)
+        self.member_list.extend(dic['ContactList'])
         self.sync_key = dic['SyncKey']
         self.my_account = dic['User']
         self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
