@@ -85,6 +85,8 @@ class WXBot:
         self.sync_key = []
         self.sync_host = ''
 
+        status = 'wait4login'    #表示机器人状态，供WEBAPI读取，WxbotManage使用
+        bot_conf = {} #机器人配置，在webapi初始化的时候传入，后续也可修改，WxbotManage使用
 
         self.batch_count = 50    #一次拉取50个联系人的信息
         self.full_user_name_list = []    #直接获取不到通讯录时，获取的username列表
@@ -118,6 +120,21 @@ class WXBot:
         self.encry_chat_room_id_list = []  # 存储群聊的EncryChatRoomId，获取群内成员头像时需要用到
 
         self.file_index = 0
+
+    #在未传入bot_conf的情况下尝试载入本地配置文件，WxbotManage使用
+    def load_conf(self,bot_conf):
+        try:
+            if bot_conf == {}:
+                with open(os.path.join(self.temp_pwd,'bot_conf.json')) as f:
+                    self.bot_conf= json.loads(f.read())
+        except:
+            self.bot_conf = {}
+
+    #保存配置文件，WxbotManage使用
+    def save_conf(self):
+        with open(os.path.join(self.temp_pwd,'bot_conf.json'), 'w') as f:
+            f.write(json.dumps(self.bot_conf))
+
 
     @staticmethod
     def to_unicode(string, encoding='utf-8'):
@@ -738,7 +755,10 @@ class WXBot:
 
     def proc_msg(self):
         self.test_sync_check()
+        self.status = 'loginsuccess'  #WxbotManage使用
         while True:
+            if self.status == 'wait4loginout':  #WxbotManage使用
+                return 
             check_time = time.time()
             try:
                 [retcode, selector] = self.sync_check()
@@ -1144,31 +1164,40 @@ class WXBot:
         return 'unknown'
 
     def run(self):
-        self.get_uuid()
-        self.gen_qr_code(os.path.join(self.temp_pwd,'wxqr.png'))
-        print '[INFO] Please use WeChat to scan the QR code .'
+        try:
+            self.get_uuid()
+            self.gen_qr_code(os.path.join(self.temp_pwd,'wxqr.png'))
+            print '[INFO] Please use WeChat to scan the QR code .'
 
-        result = self.wait4login()
-        if result != SUCCESS:
-            print '[ERROR] Web WeChat login failed. failed code=%s' % (result,)
-            return
+            result = self.wait4login()
+            if result != SUCCESS:
+                print '[ERROR] Web WeChat login failed. failed code=%s' % (result,)
+                self.status = 'loginout'
+                return
 
-        if self.login():
-            print '[INFO] Web WeChat login succeed .'
-        else:
-            print '[ERROR] Web WeChat login failed .'
-            return
+            if self.login():
+                print '[INFO] Web WeChat login succeed .'
+            else:
+                print '[ERROR] Web WeChat login failed .'
+                self.status = 'loginout'
+                return
 
-        if self.init():
-            print '[INFO] Web WeChat init succeed .'
-        else:
-            print '[INFO] Web WeChat init failed'
-            return
-        self.status_notify()
-        if self.get_contact():
-            print '[INFO] Get %d contacts' % len(self.contact_list)
-            print '[INFO] Start to process messages .'
-        self.proc_msg()
+            if self.init():
+                print '[INFO] Web WeChat init succeed .'
+            else:
+                print '[INFO] Web WeChat init failed'
+                self.status = 'loginout'
+                return
+            self.status_notify()
+            if self.get_contact():
+                print '[INFO] Get %d contacts' % len(self.contact_list)
+                print '[INFO] Start to process messages .'
+            self.proc_msg()
+            self.status = 'loginout'
+        except Exception,e:
+            print '[ERROR] Web WeChat run failed --> %s'%(e)
+            self.status = 'loginout'
+
 
     def get_uuid(self):
         url = 'https://login.weixin.qq.com/jslogin'
