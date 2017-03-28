@@ -1402,7 +1402,7 @@ class WXBot:
             r.encoding = 'utf-8'
             dic = json.loads(r.text)
             if dic['BaseResponse']['Ret'] == 0:
-                self.sync_key = dic['SyncKey']
+                self.sync_key = dic['SyncCheckKey']
                 self.sync_key_str = '|'.join([str(keyVal['Key']) + '_' + str(keyVal['Val'])
                                               for keyVal in self.sync_key['List']])
             return dic
