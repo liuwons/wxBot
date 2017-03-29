@@ -779,6 +779,8 @@ class WXBot:
                     break
                 elif retcode == '1101':  # 从其它设备上登了网页微信
                     break
+                elif retcode == '1102':  # 服务器轮回地址发生变化，更新源服务
+                    self.test_sync_check()
                 elif retcode == '0':
                     if selector == '2':  # 有新消息
                         r = self.sync()
