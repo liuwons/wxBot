@@ -133,7 +133,7 @@ class WXBot:
             group_size = len(self.group_members[group["UserName"]])
             group_count.append({'group_name': group_name, 'count': group_size})
 
-        return json.dumps(group_count)
+        return group_count
 
     #在未传入bot_conf的情况下尝试载入本地配置文件，WxbotManage使用
     def load_conf(self,bot_conf):
