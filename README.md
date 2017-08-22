@@ -269,6 +269,7 @@ python test.py
 
 [zixia/wechaty](https://github.com/zixia/wechaty) Wechaty is wechat for bot in Javascript(ES6). It's a Personal Account Robot Framework/Library.
 
+
 ## 7 基于Wxbot延伸的一些项目
 [WxbotManage](https://coding.net/u/vivre/p/WxbotManage/git) 基于Wxbot的微信多开管理和Webapi系统
 
@@ -277,3 +278,4 @@ python test.py
 问题可以直接开 **issue**
 
 **QQ** 交流群： **429134510** (1群)  **603614392** (2群)
+

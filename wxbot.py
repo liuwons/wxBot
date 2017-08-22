@@ -711,7 +711,6 @@ class WXBot:
                         f.write(json.dumps(self.wxid_list))
                     print "[INFO] Contact list is too big. Now start to fetch member list ."
                     #self.get_big_contact()
-
             elif msg['MsgType'] == 37:  # friend request
                 msg_type_id = 37
                 pass
