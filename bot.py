@@ -31,6 +31,7 @@ class TulingWXBot(WXBot):
             result = ''
             if respond['code'] == 100000:
                 result = respond['text'].replace('<br>', '  ')
+                result = result.replace(u'\xa0', u' ')
             elif respond['code'] == 200000:
                 result = respond['url']
             elif respond['code'] == 302000:
@@ -39,6 +40,7 @@ class TulingWXBot(WXBot):
                         k['article'] + "\t" + k['detailurl'] + "\n"
             else:
                 result = respond['text'].replace('<br>', '  ')
+                result = result.replace(u'\xa0', u' ')
 
             print '    ROBOT:', result
             return result
@@ -69,7 +71,7 @@ class TulingWXBot(WXBot):
             self.send_msg_by_uid(self.tuling_auto_reply(msg['user']['id'], msg['content']['data']), msg['user']['id'])
         elif msg['msg_type_id'] == 3 and msg['content']['type'] == 0:  # group text message
             if 'detail' in msg['content']:
-                my_names = self.get_group_member_name(self.my_account['UserName'], msg['user']['id'])
+                my_names = self.get_group_member_name(msg['user']['id'], self.my_account['UserName'])
                 if my_names is None:
                     my_names = {}
                 if 'NickName' in self.my_account and self.my_account['NickName']:
