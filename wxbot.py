@@ -530,7 +530,7 @@ class WXBot:
         :return: 解析的消息
         """
         mtype = msg['MsgType']
-        content = HTMLParser.HTMLParser().unescape(msg['Content'])
+        content = HTMLParser().unescape(msg['Content'])
         msg_id = msg['MsgId']
 
         msg_content = {}
@@ -746,7 +746,7 @@ class WXBot:
                 user['name'] = 'unknown'
             if not user['name']:
                 user['name'] = 'unknown'
-            user['name'] = HTMLParser.HTMLParser().unescape(user['name'])
+            user['name'] = HTMLParser().unescape(user['name'])
 
             if self.DEBUG and msg_type_id != 0:
                 print(u'[MSG] %s:' % user['name'])
