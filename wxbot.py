@@ -1253,7 +1253,7 @@ class WXBot:
         """
         http comet:
         tip=1, 等待用户扫描二维码,
-               201: scaned
+               201: scanned
                408: timeout
         tip=0, 等待用户确认登录,
                200: confirmed
