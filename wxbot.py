@@ -1134,6 +1134,13 @@ class WXBot:
                 return group['UserName']
             if 'DisplayName' in group and group['DisplayName'] == name:
                 return group['UserName']
+        for public in self.public_list: #公众号
+            if 'RemarkName' in public and public['RemarkName'] == name:
+                return public['UserName']
+            if 'NickName' in public and public['NickName'] == name:
+                return public['UserName']
+            if 'DisplayName' in public and public['DisplayName'] == name:
+                return public['UserName']
 
         return ''
 
