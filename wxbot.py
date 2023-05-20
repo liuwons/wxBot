@@ -1177,9 +1177,10 @@ class WXBot:
 
     def run(self):
         try:
-            self.get_uuid()
-            self.gen_qr_code(os.path.join(self.temp_pwd,'wxqr.png'))
-            print '[INFO] Please use WeChat to scan the QR code .'
+            if not os.path.exists('token.txt'):
+                self.get_uuid()
+                self.gen_qr_code(os.path.join(self.temp_pwd,'wxqr.png'))
+                print '[INFO] Please use WeChat to scan the QR code .'
 
             result = self.wait4login()
             if result != SUCCESS:
@@ -1209,6 +1210,11 @@ class WXBot:
         except Exception,e:
             print '[ERROR] Web WeChat run failed --> %s'%(e)
             self.status = 'loginout'
+            try:
+                os.remove('token.txt')
+                print '[INFO] Removed token file'
+            except:
+                print '[INFO] Fail to removed token file'
 
 
     def get_uuid(self):
@@ -1268,8 +1274,16 @@ class WXBot:
 
         retry_time = MAX_RETRY_TIMES
         while retry_time > 0:
-            url = LOGIN_TEMPLATE % (tip, self.uuid, int(time.time()))
-            code, data = self.do_request(url)
+            # Use the cached token to login if available
+            # so that we don't need to re-login when re-run the codes
+            try:
+                with open('token.txt', 'r') as f:
+                    line = f.read()
+                    code, data = line.split(':', 1)
+            except:
+                url = LOGIN_TEMPLATE % (tip, self.uuid, int(time.time()))
+                code, data = self.do_request(url)
+
             if code == SCANED:
                 print '[INFO] Please confirm to login .'
                 tip = 0
@@ -1280,6 +1294,11 @@ class WXBot:
                 self.base_uri = redirect_uri[:redirect_uri.rfind('/')]
                 temp_host = self.base_uri[8:]
                 self.base_host = temp_host[:temp_host.find("/")]
+
+                # Cache the token when login successfully
+                with open('token.txt', 'w') as f:
+                    f.write(code + ':' + data)
+
                 return code
             elif code == TIMEOUT:
                 print '[ERROR] WeChat login timeout. retry in %s secs later...' % (try_later_secs,)
