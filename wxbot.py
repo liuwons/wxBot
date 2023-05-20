@@ -120,6 +120,20 @@ class WXBot:
         self.encry_chat_room_id_list = []  # 存储群聊的EncryChatRoomId，获取群内成员头像时需要用到
 
         self.file_index = 0
+	
+    #获取群成员数量
+    def get_group_count(self):
+        group_count = []
+
+        if len(self.group_list) == 0:
+            return ""
+
+        for group in self.group_list:
+            group_name = group["NickName"]
+            group_size = len(self.group_members[group["UserName"]])
+            group_count.append({'group_name': group_name, 'count': group_size})
+
+        return group_count
 
     #在未传入bot_conf的情况下尝试载入本地配置文件，WxbotManage使用
     def load_conf(self,bot_conf):
@@ -377,7 +391,6 @@ class WXBot:
 
     def get_contact_info(self, uid):
         return self.account_info['normal_member'].get(uid)
-
 
     def get_group_member_info(self, uid):
         return self.account_info['group_member'].get(uid)
@@ -1108,6 +1121,32 @@ class WXBot:
             data['Msg']['EmojiFlag'] = 2
         try:
             r = self.session.post(url, data=json.dumps(data))
+            res = json.loads(r.text)
+            if res['BaseResponse']['Ret'] == 0:
+                return True
+            else:
+                return False
+        except Exception,e:
+            return False
+
+    # 发送图片扩展
+    def send_img_msg_by_uid_ex(self, ftype, mid, uid):
+        url = self.base_uri + '/webwxsendmsgimg?fun=async&f=json'
+        data = {
+                'BaseRequest': self.base_request,
+                'Msg': {
+                    'Type': 3,
+                    'MediaId': mid,
+                    'FromUserName': self.my_account['UserName'],
+                    'ToUserName': uid,
+                    'LocalID': str(time.time() * 1e7),
+                    'ClientMsgId': str(time.time() * 1e7), }, }
+        if ftype == '.gif':
+            url = self.base_uri + '/webwxsendemoticon?fun=sys'
+            data['Msg']['Type'] = 47
+            data['Msg']['EmojiFlag'] = 2
+        try:
+            r = self.session.post(url, data=json.dumps(data), timeout=120)
             res = json.loads(r.text)
             if res['BaseResponse']['Ret'] == 0:
                 return True
